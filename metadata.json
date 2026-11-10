@@ -1,0 +1,10 @@
+{
+  "name": "ProblemGraph (প্রবলেমগ্রাফ)",
+  "description": "এআই-চালিত অবস্থানভিত্তিক সামাজিক সমস্যা চিহ্নিতকরণ ও যাত্রাপথ বিশ্লেষণ প্ল্যাটফর্ম।",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
