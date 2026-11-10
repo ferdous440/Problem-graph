@@ -83,8 +83,15 @@ export async function classifyProblemReport(
   title: string,
   description: string,
   userCategory?: string,
-  userSeverity?: string
+  userSeverity?: string,
+  timeoutMs: number = 1200
 ): Promise<ProblemClassificationResult> {
+  const instantResult = fallbackClassification(title, description, userCategory, userSeverity);
+
+  if (!process.env.GEMINI_API_KEY) {
+    return instantResult;
+  }
+
   const prompt = `
 আপনি 'প্রবলেমগ্রাফ' প্ল্যাটফর্মের এআই ক্লাসিফায়ার বিশেষজ্ঞ।
 ব্যবহারকারীর জমা দেওয়া নাগরিক সমস্যার বিবরণটি বিশ্লেষণ করুন এবং শুদ্ধ বাংলায় ফলাফল প্রদান করুন।
@@ -112,31 +119,34 @@ low (কম), medium (মাঝারি), high (বেশি), critical (অত
 `;
 
   try {
-    if (!process.env.GEMINI_API_KEY) {
-      return fallbackClassification(title, description, userCategory, userSeverity);
-    }
+    const aiPromise = (async () => {
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+        },
+      });
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-      },
+      const text = response.text?.trim() || '{}';
+      const parsed = JSON.parse(text);
+      return {
+        suggestedCategory: parsed.suggestedCategory || userCategory || instantResult.suggestedCategory,
+        suggestedSeverity: parsed.suggestedSeverity || userSeverity || instantResult.suggestedSeverity,
+        summaryBn: parsed.summaryBn || instantResult.summaryBn,
+        keywords: parsed.keywords || instantResult.keywords,
+        potentialHazards: parsed.potentialHazards || instantResult.potentialHazards,
+        urgencyScore: parsed.urgencyScore || instantResult.urgencyScore,
+      };
+    })();
+
+    const timeoutPromise = new Promise<ProblemClassificationResult>((resolve) => {
+      setTimeout(() => resolve(instantResult), timeoutMs);
     });
 
-    const text = response.text?.trim() || '{}';
-    const parsed = JSON.parse(text);
-    return {
-      suggestedCategory: parsed.suggestedCategory || userCategory || 'রাস্তার ক্ষতি',
-      suggestedSeverity: parsed.suggestedSeverity || userSeverity || 'medium',
-      summaryBn: parsed.summaryBn || `${title} সংক্রান্ত নাগরিক সমস্যা। দ্রুত সমাধান প্রয়োজন।`,
-      keywords: parsed.keywords || [title.split(' ')[0]],
-      potentialHazards: parsed.potentialHazards || ['নাগরিক দুর্ভোগ'],
-      urgencyScore: parsed.urgencyScore || 6.5,
-    };
+    return await Promise.race([aiPromise, timeoutPromise]);
   } catch (error) {
-    console.warn('Gemini classification fallback used due to:', error);
-    return fallbackClassification(title, description, userCategory, userSeverity);
+    return instantResult;
   }
 }
 
@@ -327,7 +337,7 @@ STRICT JSON ফরম্যাটে দিন:
 }
 
 // Fallback generators when API key is not configured or in offline simulation
-function fallbackClassification(title: string, desc: string, cat?: string, sev?: string): ProblemClassificationResult {
+export function fallbackClassification(title: string, desc: string, cat?: string, sev?: string): ProblemClassificationResult {
   const text = `${title} ${desc}`.toLowerCase();
   let suggestedCat = cat || 'রাস্তার ক্ষতি';
   let suggestedSev: 'low' | 'medium' | 'high' | 'critical' = sev as any || 'medium';

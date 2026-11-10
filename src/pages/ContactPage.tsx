@@ -7,9 +7,18 @@ export const ContactPage: React.FC = () => {
   const [message, setMessage] = useState('');
   const [isSent, setIsSent] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !message.trim()) return;
+    try {
+      await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim(), email: email.trim(), message: message.trim() })
+      });
+    } catch {
+      // fallback smoothly
+    }
     setIsSent(true);
   };
 

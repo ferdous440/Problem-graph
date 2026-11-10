@@ -5,10 +5,14 @@ export interface UserProfile {
   id: string;
   email: string;
   full_name: string;
+  password?: string;
   phone?: string;
   role: 'user' | 'admin' | 'super_admin';
   district: string;
   area: string;
+  division?: string;
+  address?: string;
+  nid?: string;
   avatar_url?: string;
   is_verified?: boolean;
   created_at: string;
@@ -92,7 +96,7 @@ export interface AuditLog {
 export interface UserNotification {
   id: string;
   user_id: string;
-  problem_id: string;
+  problem_id?: string;
   title_bn: string;
   message_bn: string;
   is_read: boolean;
@@ -248,10 +252,10 @@ const SEED_CATEGORIES: Category[] = [
   }
 ];
 
-// Initial seed profiles
+// Initial seed profiles (compatible with Supabase UUID schema)
 const SEED_PROFILES: UserProfile[] = [
   {
-    id: 'user-superadmin',
+    id: '00000000-0000-0000-0000-000000000001',
     email: 'superadmin@problemgraph.bd',
     full_name: 'কাজী শাহরিয়ার রহমান (সুপার অ্যাডমিন)',
     phone: '01711000001',
@@ -263,7 +267,7 @@ const SEED_PROFILES: UserProfile[] = [
     created_at: '2025-01-01T00:00:00Z'
   },
   {
-    id: 'user-admin',
+    id: '00000000-0000-0000-0000-000000000002',
     email: 'admin@problemgraph.bd',
     full_name: 'প্রকৌশলী রফিকুল ইসলাম (ডিএনসিসি)',
     phone: '01811000002',
@@ -275,7 +279,7 @@ const SEED_PROFILES: UserProfile[] = [
     created_at: '2025-01-05T00:00:00Z'
   },
   {
-    id: 'user-general',
+    id: '00000000-0000-0000-0000-000000000003',
     email: 'user@problemgraph.bd',
     full_name: 'তানভীর আহমেদ',
     phone: '01911000003',
@@ -629,7 +633,7 @@ class MemoryStore {
     this.saveData();
   }
 
-  private saveData() {
+  saveData() {
     try {
       const dir = path.dirname(DATA_FILE);
       if (!fs.existsSync(dir)) {
@@ -662,11 +666,33 @@ class MemoryStore {
   }
 
   getProfileById(id: string) {
-    return this.profiles.find(p => p.id === id);
+    if (!id) return undefined;
+    const direct = this.profiles.find(p => p.id === id);
+    if (direct) return direct;
+    // Fallback aliases for demo switchers and legacy sessions
+    if (id === 'user-superadmin') return this.profiles.find(p => p.email === 'superadmin@problemgraph.bd');
+    if (id === 'user-admin') return this.profiles.find(p => p.email === 'admin@problemgraph.bd');
+    if (id === 'user-general') return this.profiles.find(p => p.email === 'user@problemgraph.bd');
+    return undefined;
   }
 
   getProfileByEmail(email: string) {
     return this.profiles.find(p => p.email.toLowerCase() === email.toLowerCase());
+  }
+
+  getProfileByEmailOrPhone(query: string) {
+    const q = query.trim().toLowerCase();
+    const cleanPhone = q.replace(/[^0-9]/g, '');
+    return this.profiles.find(p => {
+      if (p.email.toLowerCase() === q) return true;
+      if (cleanPhone.length >= 10 && p.phone) {
+        const pClean = p.phone.replace(/[^0-9]/g, '');
+        if (pClean === cleanPhone || pClean.endsWith(cleanPhone) || cleanPhone.endsWith(pClean)) {
+          return true;
+        }
+      }
+      return false;
+    });
   }
 
   createProfile(profile: UserProfile) {
@@ -704,6 +730,47 @@ class MemoryStore {
       return this.categories[idx];
     }
     return null;
+  }
+
+  setCategories(categories: Category[]) {
+    this.categories = categories;
+    this.saveData();
+  }
+
+  setReports(reports: ProblemReport[]) {
+    this.reports = reports;
+    this.saveData();
+  }
+
+  setProfiles(profiles: UserProfile[]) {
+    // Preserve local passwords when merging from Supabase profiles
+    const emailMap = new Map(this.profiles.map(p => [p.email.toLowerCase().trim(), p]));
+    const phoneMap = new Map(this.profiles.filter(p => p.phone).map(p => [p.phone!.trim(), p]));
+    const idMap = new Map(this.profiles.map(p => [p.id, p]));
+
+    this.profiles = profiles.map(p => {
+      const existing = (p.id ? idMap.get(p.id) : undefined) ||
+                       emailMap.get(p.email.toLowerCase().trim()) ||
+                       (p.phone ? phoneMap.get(p.phone.trim()) : undefined);
+      return {
+        ...p,
+        password: existing?.password || p.password || 'pass123'
+      };
+    });
+    this.saveData();
+  }
+
+  updateProfilePassword(identifier: string, newPassword: string): boolean {
+    const clean = identifier.trim().toLowerCase();
+    const user = this.profiles.find(
+      p => p.id === identifier || p.email.toLowerCase() === clean || (p.phone && p.phone.trim() === identifier.trim())
+    );
+    if (user) {
+      user.password = newPassword;
+      this.saveData();
+      return true;
+    }
+    return false;
   }
 
   // --- Problem Reports ---
@@ -758,10 +825,35 @@ class MemoryStore {
     return rep;
   }
 
-  createReport(data: Partial<ProblemReport>, user: UserProfile): ProblemReport {
+  generateUniqueTrackingCode(): string {
     const nowYear = new Date().getFullYear();
-    const count = this.reports.length + 101;
-    const trackingCode = `PG-${nowYear}-${String(count).padStart(4, '0')}`;
+    const existingCodes = new Set(this.reports.map(r => r.tracking_code));
+
+    // Find highest sequence number across all existing reports
+    let maxSeq = 100;
+    for (const code of existingCodes) {
+      const match = code.match(/PG-\d{4}-(\d+)/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (!isNaN(num) && num > maxSeq) {
+          maxSeq = num;
+        }
+      }
+    }
+
+    let nextNum = maxSeq + 1;
+    let candidate = `PG-${nowYear}-${String(nextNum).padStart(4, '0')}`;
+
+    while (existingCodes.has(candidate)) {
+      nextNum++;
+      candidate = `PG-${nowYear}-${String(nextNum).padStart(4, '0')}`;
+    }
+
+    return candidate;
+  }
+
+  createReport(data: Partial<ProblemReport>, user: UserProfile): ProblemReport {
+    const trackingCode = this.generateUniqueTrackingCode();
 
     const newReport: ProblemReport = {
       id: `prob-${Date.now()}`,

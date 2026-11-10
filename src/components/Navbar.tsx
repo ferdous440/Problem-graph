@@ -267,7 +267,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
                       )}
                     </div>
 
-                    <div className="pt-1 border-t border-slate-100">
+                    <div className="pt-1 border-t border-slate-100 space-y-0.5">
+                      <button
+                        onClick={() => { handleNavClick('login'); setIsUserMenuOpen(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 rounded-xl transition-colors"
+                      >
+                        <User className="w-4 h-4 text-slate-400" />
+                        <span>অন্য অ্যাকাউন্টে প্রবেশ</span>
+                      </button>
                       <button
                         onClick={() => { logout(); setIsUserMenuOpen(false); }}
                         className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
@@ -280,12 +287,20 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
                 )}
               </div>
             ) : (
-              <button
-                onClick={() => handleNavClick('login')}
-                className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors"
-              >
-                লগইন
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => handleNavClick('login')}
+                  className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold px-3.5 py-2 rounded-xl transition-colors shadow-xs"
+                >
+                  লগইন
+                </button>
+                <button
+                  onClick={() => handleNavClick('login')}
+                  className="hidden sm:inline-block bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 text-xs font-semibold px-3 py-2 rounded-xl transition-colors"
+                >
+                  রেজিস্ট্রেশন
+                </button>
+              </div>
             )}
 
             {/* Mobile Menu Button */}

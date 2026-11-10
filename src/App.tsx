@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -16,15 +16,24 @@ function MainApp() {
   const [currentPage, setCurrentPage] = useState<string>('home');
   const { user } = useAuth();
 
+  // If user logs out while viewing a dashboard, redirect to home page
+  useEffect(() => {
+    if (!user && (currentPage === 'user-dashboard' || currentPage === 'admin-dashboard')) {
+      setCurrentPage('home');
+    }
+  }, [user, currentPage]);
+
   const handleNavigate = (page: string) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const isDashboard = currentPage === 'admin-dashboard' || currentPage === 'user-dashboard';
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 font-['Hind_Siliguri',sans-serif] text-slate-900 antialiased selection:bg-teal-500 selection:text-white">
-      {/* Top Navbar */}
-      <Navbar currentPage={currentPage} onNavigate={handleNavigate} />
+      {/* Top Navbar (for public pages) */}
+      {!isDashboard && <Navbar currentPage={currentPage} onNavigate={handleNavigate} />}
 
       {/* Main Page View */}
       <main className="flex-1">
@@ -44,8 +53,8 @@ function MainApp() {
         {currentPage === 'login' && <LoginPage onNavigate={handleNavigate} />}
       </main>
 
-      {/* Smart City Footer */}
-      <Footer onNavigate={handleNavigate} />
+      {/* Smart City Footer (for public pages) */}
+      {!isDashboard && <Footer onNavigate={handleNavigate} />}
     </div>
   );
 }

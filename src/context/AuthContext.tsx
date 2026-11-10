@@ -8,8 +8,23 @@ interface AuthContextType {
   isLoading: boolean;
   notifications: UserNotification[];
   unreadCount: number;
-  login: (email: string, role?: string) => Promise<void>;
-  register: (data: { full_name: string; email: string; phone?: string; district?: string; area?: string }) => Promise<void>;
+  login: (credentials: { email: string; password?: string; role?: string } | string, role?: string) => Promise<void>;
+  register: (data: {
+    full_name: string;
+    email: string;
+    password?: string;
+    phone?: string;
+    division?: string;
+    district?: string;
+    area?: string;
+    address?: string;
+    nid?: string;
+    role?: string;
+    avatar_url?: string;
+  }) => Promise<void>;
+  forgotPassword: (email: string) => Promise<{ message: string }>;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean; user: UserProfile; message?: string }>;
+  changePassword: (current_password?: string, new_password?: string) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
   switchDemoRole: (role: 'user' | 'admin' | 'super_admin') => Promise<void>;
   refreshNotifications: () => Promise<void>;
@@ -89,10 +104,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const login = async (email: string, role?: string) => {
+  const login = async (credentials: { email: string; password?: string; role?: string } | string, role?: string) => {
     setIsLoading(true);
     try {
-      const res = await api.login(email, role);
+      const res = await api.login(credentials, role);
       localStorage.setItem('problemgraph_token', res.token);
       setToken(res.token);
       setUser(res.user);
@@ -101,7 +116,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (data: { full_name: string; email: string; phone?: string; district?: string; area?: string }) => {
+  const register = async (data: {
+    full_name: string;
+    email: string;
+    password?: string;
+    phone?: string;
+    division?: string;
+    district?: string;
+    area?: string;
+    address?: string;
+    nid?: string;
+    role?: string;
+    avatar_url?: string;
+  }) => {
     setIsLoading(true);
     try {
       const res = await api.register(data);
@@ -111,6 +138,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const forgotPassword = async (email: string) => {
+    const res = await api.forgotPassword(email);
+    return res;
+  };
+
+  const updateProfile = async (updates: Partial<UserProfile>) => {
+    setIsLoading(true);
+    try {
+      const res = await api.updateProfile(updates);
+      if (res.user) {
+        setUser(res.user);
+      }
+      return res;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const changePassword = async (current_password?: string, new_password?: string) => {
+    return await api.changePassword(current_password, new_password);
   };
 
   const logout = () => {
@@ -138,6 +187,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         unreadCount,
         login,
         register,
+        forgotPassword,
+        updateProfile,
+        changePassword,
         logout,
         switchDemoRole,
         refreshNotifications,

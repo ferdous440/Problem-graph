@@ -6,6 +6,9 @@ export interface UserProfile {
   role: 'user' | 'admin' | 'super_admin';
   district: string;
   area: string;
+  division?: string;
+  address?: string;
+  nid?: string;
   avatar_url?: string;
   is_verified?: boolean;
   created_at: string;

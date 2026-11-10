@@ -144,7 +144,8 @@ export const SubmitProblemPage: React.FC<SubmitProblemPageProps> = ({
         address,
         latitude: coords.lat,
         longitude: coords.lng,
-        images
+        images,
+        ai_analysis: aiPreview || undefined
       });
 
       setSubmitSuccess(res.report);
@@ -497,7 +498,7 @@ export const SubmitProblemPage: React.FC<SubmitProblemPageProps> = ({
             {isSubmitting ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>প্রসেসিং ও এআই অ্যানালাইসিস...</span>
+                <span>সংরক্ষণ ও দ্রুত এআই মূল্যায়ন হচ্ছে...</span>
               </>
             ) : (
               <>

@@ -1,0 +1,954 @@
+{
+  "categories": [
+    {
+      "id": "cat-1",
+      "slug": "road-damage",
+      "name_bn": "রাস্তার ক্ষতি",
+      "name_en": "Road Damage",
+      "icon": "Hammer",
+      "color": "#f97316",
+      "description_bn": "রাস্তার খানাখন্দ, পিচ ঢালাই ভেঙে যাওয়া ও কার্পেটিং নষ্ট",
+      "subcategories": [
+        "বড় গর্ত/খানাখন্দ",
+        "ম্যানহোল ভেঙে যাওয়া",
+        "ফুটপাত ভাঙা",
+        "ডিভাইডার ক্ষতি"
+      ],
+      "is_active": true,
+      "created_at": "2026-11-10T15:14:34.799781+00:00"
+    },
+    {
+      "id": "cat-2",
+      "slug": "traffic-jam",
+      "name_bn": "যানজট",
+      "name_en": "Traffic Jam",
+      "icon": "Car",
+      "color": "#ef4444",
+      "description_bn": "স্থবির ট্রাফিক, সিগন্যাল বিকল এবং অবৈধ পার্কিং সংক্রান্ত জ্যাম",
+      "subcategories": [
+        "সিগন্যাল অকার্যকর",
+        "অবৈধ বাস স্ট্যান্ড",
+        "দীর্ঘস্থায়ী ট্রাফিক জ্যাম",
+        "অবৈধ পার্কিং"
+      ],
+      "is_active": true,
+      "created_at": "2026-11-10T15:14:34.799781+00:00"
+    },
+    {
+      "id": "cat-3",
+      "slug": "waterlogging",
+      "name_bn": "জলাবদ্ধতা",
+      "name_en": "Waterlogging",
+      "icon": "CloudRain",
+      "color": "#0284c7",
+      "description_bn": "বৃষ্টির পর রাস্তায় দীর্ঘস্থায়ী পানি জমে থাকা ও চলাচলে স্থবিরতা",
+      "subcategories": [
+        "রাস্তায় কোমর সমান পানি",
+        "ফুটপাত নিমজ্জিত",
+        "আবাসিক এলাকায় পানি প্রবেশ"
+      ],
+      "is_active": true,
+      "created_at": "2026-11-10T15:14:34.799781+00:00"
+    },
+    {
+      "id": "cat-4",
+      "slug": "waste-management",
+      "name_bn": "বর্জ্য ব্যবস্থাপনা",
+      "name_en": "Waste Management",
+      "icon": "Trash2",
+      "color": "#84cc16",
+      "description_bn": "খোলা রাস্তায় ময়লার স্তূপ, ডাস্টবিন উপচে পড়া ও তীব্র দুর্গন্ধ",
+      "subcategories": [
+        "খোলা রাস্তায় আবর্জনা",
+        "ডাস্টবিন অপসারিত নয়",
+        "মেডিকেল বর্জ্য"
+      ],
+      "is_active": true,
+      "created_at": "2026-11-10T15:14:34.799781+00:00"
+    },
+    {
+      "id": "cat-5",
+      "slug": "drainage",
+      "name_bn": "ড্রেনেজ সমস্যা",
+      "name_en": "Drainage Issue",
+      "icon": "Waves",
+      "color": "#6366f1",
+      "description_bn": "ড্রেন উপচে পড়া, ঢাকনাহীন খোলা ড্রেন ও পলিথিন জমে ব্লক",
+      "subcategories": [
+        "খোলা ম্যানহোল/ড্রেন",
+        "ড্রেন উপচে রাস্তায় ময়লা পানি",
+        "ড্রেন সংস্কার বন্ধ"
+      ],
+      "is_active": true,
+      "created_at": "2026-11-10T15:14:34.799781+00:00"
+    },
+    {
+      "id": "cat-6",
+      "slug": "water-supply",
+      "name_bn": "পানি সমস্যা",
+      "name_en": "Water Supply Issue",
+      "icon": "Droplet",
+      "color": "#06b6d4",
+      "description_bn": "ওয়াসার পাইপলাইন ফেটে যাওয়া, পানির তীব্র সংকট বা ময়লা পানি সরবরাহ",
+      "subcategories": [
+        "পাইপ ফেটে পানি অপচয়",
+        "পানির অভাব",
+        "দূষিত দুর্গন্ধযুক্ত পানি"
+      ],
+      "is_active": true,
+      "created_at": "2026-11-10T15:14:34.799781+00:00"
+    },
+    {
+      "id": "cat-7",
+      "slug": "electricity",
+      "name_bn": "বিদ্যুৎ সমস্যা",
+      "name_en": "Electricity Issue",
+      "icon": "Zap",
+      "color": "#eab308",
+      "description_bn": "বিপজ্জনক খোলা তার, ট্রান্সফরমার বিস্ফোরণ ও ঘনঘন লোডশেডিং",
+      "subcategories": [
+        "ঝুলন্ত বিপজ্জনক তার",
+        "ট্রান্সফরমার বিকল",
+        "অকার্যকর স্ট্রিট লাইট"
+      ],
+      "is_active": true,
+      "created_at": "2026-11-10T15:14:34.799781+00:00"
+    },
+    {
+      "id": "cat-8",
+      "slug": "gas-supply",
+      "name_bn": "গ্যাস সমস্যা",
+      "name_en": "Gas Supply Issue",
+      "icon": "Flame",
+      "color": "#a855f7",
+      "description_bn": "গ্যাসের পাইপলাইন লিকেজ ও রান্নার গ্যাসের তীব্র সংকট",
+      "subcategories": [
+        "পাইপলাইন লিকেজ",
+        "নিম্নচাপ",
+        "সম্পূর্ণ গ্যাস সংযোগ বিচ্ছিন্ন"
+      ],
+      "is_active": true,
+      "created_at": "2026-11-10T15:14:34.799781+00:00"
+    },
+    {
+      "id": "cat-9",
+      "slug": "construction",
+      "name_bn": "নির্মাণকাজ",
+      "name_en": "Construction Obstacle",
+      "icon": "HardHat",
+      "color": "#f59e0b",
+      "description_bn": "রাস্তায় ফেলে রাখা নির্মাণ সামগ্রী ও অনির্দিষ্টকালের খোঁড়াখুঁড়ি",
+      "subcategories": [
+        "রাস্তায় রড-সিমেন্ট-বালু",
+        "অনিরাপদ খোঁড়াখুঁড়ি",
+        "ব্যারিকেডবিহীন গর্ত"
+      ],
+      "is_active": true,
+      "created_at": "2026-11-10T15:14:34.799781+00:00"
+    },
+    {
+      "id": "cat-10",
+      "slug": "public-transport",
+      "name_bn": "গণপরিবহন সমস্যা",
+      "name_en": "Public Transport Issue",
+      "icon": "Bus",
+      "color": "#3b82f6",
+      "description_bn": "অতিরিক্ত ভাড়া আদায়, ফিটনেসবিহীন বাস ও যাত্রী হয়রানি",
+      "subcategories": [
+        "অতিরিক্ত ভাড়া",
+        "ফিটনেসবিহীন গাড়ি",
+        "যাত্রী তোলার প্রতিযোগিতা"
+      ],
+      "is_active": true,
+      "created_at": "2026-11-10T15:14:34.799781+00:00"
+    },
+    {
+      "id": "cat-11",
+      "slug": "pollution",
+      "name_bn": "পরিবেশ দূষণ",
+      "name_en": "Environmental Pollution",
+      "icon": "Wind",
+      "color": "#10b981",
+      "description_bn": "ধোঁয়াশা, তীব্র শব্দদূষণ ও অবৈধ ইটভাটা",
+      "subcategories": [
+        "কালো ধোঁয়া",
+        "অননুমোদিত হর্ন/শব্দদূষণ",
+        "রাসায়নিক বর্জ্য নিক্ষেপ"
+      ],
+      "is_active": true,
+      "created_at": "2026-11-10T15:14:34.799781+00:00"
+    },
+    {
+      "id": "cat-12",
+      "slug": "security",
+      "name_bn": "নিরাপত্তা সংক্রান্ত সমস্যা",
+      "name_en": "Security Issue",
+      "icon": "ShieldAlert",
+      "color": "#ec4899",
+      "description_bn": "ছিনতাইপ্রবণ অন্ধকার এলাকা, বখাটেদের উপদ্রব ও ক্লোজ সার্কিট ক্যামেরার অভাব",
+      "subcategories": [
+        "অন্ধকার অনিরাপদ গলি",
+        "ছিনতাইপ্রবণ এলাকা",
+        "মাদকের আড্ডা"
+      ],
+      "is_active": true,
+      "created_at": "2026-11-10T15:14:34.799781+00:00"
+    },
+    {
+      "id": "cat-13",
+      "slug": "others",
+      "name_bn": "অন্যান্য",
+      "name_en": "Others",
+      "icon": "AlertCircle",
+      "color": "#64748b",
+      "description_bn": "অন্যান্য জরুরি জনদুর্ভোগ বা নাগরিক অসঙ্গতি",
+      "subcategories": [
+        "গাছ ভেঙে পড়া",
+        "ঘূর্ণায়মান সাইনবোর্ড ঝুঁকি"
+      ],
+      "is_active": true,
+      "created_at": "2026-11-10T15:14:34.799781+00:00"
+    }
+  ],
+  "profiles": [
+    {
+      "id": "00000000-0000-0000-0000-000000000001",
+      "email": "superadmin@problemgraph.bd",
+      "full_name": "কাজী শাহরিয়ার রহমান (সুপার অ্যাডমিন)",
+      "phone": "01711000001",
+      "role": "super_admin",
+      "division": "ঢাকা",
+      "district": "ঢাকা",
+      "area": "উত্তরা",
+      "address": "",
+      "nid": "",
+      "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80",
+      "is_verified": true,
+      "created_at": "2026-11-10T16:41:07.45282+00:00",
+      "password": "pass123"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000002",
+      "email": "admin@problemgraph.bd",
+      "full_name": "প্রকৌশলী রফিকুল ইসলাম (ডিএনসিসি)",
+      "phone": "01811000002",
+      "role": "admin",
+      "division": "ঢাকা",
+      "district": "ঢাকা",
+      "area": "মিরপুর",
+      "address": "",
+      "nid": "",
+      "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80",
+      "is_verified": true,
+      "created_at": "2026-11-10T16:41:07.45282+00:00",
+      "password": "pass123"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000003",
+      "email": "user@problemgraph.bd",
+      "full_name": "তানভীর আহমেদ",
+      "phone": "01911000003",
+      "role": "user",
+      "division": "ঢাকা",
+      "district": "ঢাকা",
+      "area": "ধানমন্ডি",
+      "address": "",
+      "nid": "",
+      "avatar_url": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80",
+      "is_verified": true,
+      "created_at": "2026-11-10T16:41:07.45282+00:00",
+      "password": "pass123"
+    },
+    {
+      "id": "f513bafc-b5cb-4f05-97b2-c5cc4e527121",
+      "email": "mustafiz@citizen.bd",
+      "full_name": "মুস্তাফিজুর রহমান",
+      "phone": "01712345678",
+      "role": "user",
+      "division": "ঢাকা",
+      "district": "ঢাকা",
+      "area": "গুলশান ১",
+      "address": "",
+      "nid": "",
+      "avatar_url": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80",
+      "is_verified": true,
+      "created_at": "2026-11-10T13:53:35.94+00:00",
+      "password": "pass123456"
+    },
+    {
+      "id": "9a3b242e-c01c-429a-8888-b2281918b660",
+      "email": "liakathossain1913440@gmail.com",
+      "full_name": "Liakat Hossain",
+      "phone": "01999868399",
+      "role": "user",
+      "division": "ঢাকা",
+      "district": "ঢাকা",
+      "area": "মিরপুর ১০",
+      "address": "",
+      "nid": "",
+      "avatar_url": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80",
+      "is_verified": true,
+      "created_at": "2026-11-10T17:07:02.438+00:00",
+      "password": "liakat440"
+    },
+    {
+      "id": "6cd66a93-cd63-48d6-a8ac-b972176e02a8",
+      "email": "testcitizenz99@gmail.com",
+      "full_name": "Test Citizen User",
+      "phone": "01799998888",
+      "role": "user",
+      "division": "ঢাকা",
+      "district": "ঢাকা",
+      "area": "ধানমন্ডি",
+      "address": "",
+      "nid": "",
+      "avatar_url": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80",
+      "is_verified": true,
+      "created_at": "2026-11-10T19:11:56.931+00:00",
+      "password": "testpass12345"
+    }
+  ],
+  "reports": [
+    {
+      "id": "prob-6",
+      "tracking_code": "PG-2025-0106",
+      "user_id": "user-general",
+      "user_name": "মুনজেরিন ইসলাম",
+      "user_phone": null,
+      "category_id": "cat-9",
+      "category": "নির্মাণকাজ",
+      "subcategory": "রাস্তায় রড-সিমেন্ট-বালু",
+      "title": "বনানী ১১ নম্বর ব্রিজের সংযোগস্থলে রাস্তা দখল করে নির্মাণ সামগ্রী ফেলে রাখা",
+      "description": "একটি বহুতল বাণিজ্যিক ভবনের নির্মাণ কাজের জন্য প্রধান রাস্তার অর্ধেক জায়গা জুড়ে পাথর, বালু ও মিক্সার মেশিন রাখা হয়েছে। ফলে গাড়ি এক লেনে চলতে গিয়ে চরম জ্যাম হচ্ছে এবং ধুলোবালিতে পথচারীরা অসুস্থ হচ্ছে।",
+      "severity": "medium",
+      "status": "pending",
+      "district": "ঢাকা",
+      "area": "বনানী",
+      "address": "রোড নম্বর ১১, ব্লক এফ, বনানী, ঢাকা-১২১৩",
+      "latitude": 23.7937,
+      "longitude": 90.4066,
+      "reported_at": "2025-02-12T11:00:00+00:00",
+      "resolved_at": null,
+      "upvotes_count": 19,
+      "comments_count": 1,
+      "views_count": 140,
+      "is_public": true,
+      "images": [
+        "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=800&q=80"
+      ],
+      "resolution_notes": null,
+      "resolution_evidence_url": null,
+      "ai_analysis": {},
+      "supported_by": [],
+      "created_at": "2026-11-10T15:14:35.576383+00:00",
+      "updated_at": "2026-11-10T15:14:35.576383+00:00",
+      "comments": [],
+      "status_history": []
+    },
+    {
+      "id": "prob-4",
+      "tracking_code": "PG-2025-0104",
+      "user_id": "user-general",
+      "user_name": "সাঈদ হাসান",
+      "user_phone": null,
+      "category_id": "cat-5",
+      "category": "ড্রেনেজ সমস্যা",
+      "subcategory": "খোলা ম্যানহোল/ড্রেন",
+      "title": "মহাখালী কাঁচাবাজারের পাশে ঢাকনাহীন বিপজ্জনক খোলা ম্যানহোল",
+      "description": "মহাখালী কাঁচাবাজারের উত্তর গলিতে মূল সড়কের ওপর একটি বড় ম্যানহোলের ঢাকনা গত ২০ দিন ধরে ভাঙা। পথচারীরা একটি গাছের ডাল গুঁজে রেখেছে। রাতের বেলায় যে কোনো সময় মারাত্মক প্রাণঘাতী দুর্ঘটনা ঘটতে পারে।",
+      "severity": "critical",
+      "status": "verified",
+      "district": "ঢাকা",
+      "area": "মহাখালী",
+      "address": "মহাখালী কাঁচাবাজারের উত্তর পাশ, আমতলী মোড় হতে কাঁচাবাজার লিংক রোড, ঢাকা",
+      "latitude": 23.7776,
+      "longitude": 90.4054,
+      "reported_at": "2025-02-12T07:45:00+00:00",
+      "resolved_at": null,
+      "upvotes_count": 73,
+      "comments_count": 12,
+      "views_count": 490,
+      "is_public": true,
+      "images": [
+        "https://images.unsplash.com/photo-1584467735871-8e85353a8413?auto=format&fit=crop&w=800&q=80"
+      ],
+      "resolution_notes": null,
+      "resolution_evidence_url": null,
+      "ai_analysis": {
+        "keywords": [
+          "মহাখালী",
+          "খোলা ম্যানহোল",
+          "কাঁচাবাজার",
+          "প্রাণঘাতী ঝুঁকি"
+        ],
+        "summaryBn": "মহাখালী জনবহুল কাঁচাবাজারে খোলা গভীর ম্যানহোল। মানুষের জীবননাশের ঝুঁকি রয়েছে। অবিলম্বে কংক্রিট স্ল্যাব স্থাপন করা হোক।",
+        "urgencyScore": 9.8,
+        "potentialHazards": [
+          "পথচারী ও শিশু পড়ে যাওয়া",
+          "মৃত্যু ঝুঁকি"
+        ],
+        "suggestedCategory": "ড্রেনেজ সমস্যা",
+        "suggestedSeverity": "critical"
+      },
+      "supported_by": [
+        "user-general",
+        "user-admin",
+        "user-superadmin"
+      ],
+      "created_at": "2026-11-10T15:14:35.576383+00:00",
+      "updated_at": "2026-11-10T15:14:35.576383+00:00",
+      "comments": [],
+      "status_history": []
+    },
+    {
+      "id": "prob-8",
+      "tracking_code": "PG-2025-0108",
+      "user_id": "user-general",
+      "user_name": "সোহেল রানা",
+      "user_phone": null,
+      "category_id": "cat-7",
+      "category": "বিদ্যুৎ সমস্যা",
+      "subcategory": "ঝুলন্ত বিপজ্জনক তার",
+      "title": "পুরান ঢাকা চকবাজার মোড়ে ঝুলন্ত ঝুঁকিপূর্ণ বিদ্যুতের তারের জটলা",
+      "description": "চকবাজার মোড়ে মাথার মাত্র ৬ ফুট উপরে বিদ্যুতের তার ও ইন্টারনেট ক্যাবলের ভয়াবহ জট। সামান্য বাতাসেই স্পার্ক হচ্ছে এবং আগুন ধরে যাওয়ার আশঙ্কা রয়েছে।",
+      "severity": "critical",
+      "status": "in_progress",
+      "district": "ঢাকা",
+      "area": "চকবাজার",
+      "address": "চকবাজার শাহী মসজিদ মোড়, চকবাজার, লালবাগ, পুরান ঢাকা",
+      "latitude": 23.7155,
+      "longitude": 90.3955,
+      "reported_at": "2025-02-11T13:40:00+00:00",
+      "resolved_at": null,
+      "upvotes_count": 62,
+      "comments_count": 7,
+      "views_count": 375,
+      "is_public": true,
+      "images": [
+        "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=800&q=80"
+      ],
+      "resolution_notes": null,
+      "resolution_evidence_url": null,
+      "ai_analysis": {},
+      "supported_by": [
+        "user-general",
+        "user-superadmin"
+      ],
+      "created_at": "2026-11-10T15:14:35.576383+00:00",
+      "updated_at": "2026-11-10T15:14:35.576383+00:00",
+      "comments": [],
+      "status_history": []
+    },
+    {
+      "id": "prob-2",
+      "tracking_code": "PG-2025-0102",
+      "user_id": "user-general",
+      "user_name": "ফারহানা ইয়াসমিন",
+      "user_phone": null,
+      "category_id": "cat-2",
+      "category": "যানজট",
+      "subcategory": "অবৈধ বাস স্ট্যান্ড",
+      "title": "ফার্মগেট আনন্দ সিনেমা হলের মোড়ে অবৈধ বাস থামিয়ে রাখার কারণে তীব্র জ্যাম",
+      "description": "ফার্মগেট থেকে শাহবাগগামী লেনে ৩টি লেনের মধ্যে ২টি লেন দখল করে সারাদিন লোকাল বাস দাঁড়িয়ে থাকে। ট্রাফিক পুলিশের নিয়মিত নজরদারি না থাকায় সকাল ও বিকেলে অসহনীয় জ্যাম সৃষ্টি হচ্ছে।",
+      "severity": "high",
+      "status": "in_progress",
+      "district": "ঢাকা",
+      "area": "ফার্মগেট",
+      "address": "আনন্দ সিনেমা হল সংলগ্ন ফুটওভার ব্রিজ, কাজী নজরুল ইসলাম এভিনিউ, ফার্মগেট, ঢাকা",
+      "latitude": 23.757,
+      "longitude": 90.3905,
+      "reported_at": "2025-02-11T08:15:00+00:00",
+      "resolved_at": null,
+      "upvotes_count": 36,
+      "comments_count": 3,
+      "views_count": 215,
+      "is_public": true,
+      "images": [
+        "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80"
+      ],
+      "resolution_notes": null,
+      "resolution_evidence_url": null,
+      "ai_analysis": {
+        "keywords": [
+          "ফার্মগেট",
+          "বাস পার্কিং",
+          "কাজী নজরুল ইসলাম এভিনিউ",
+          "যানজট"
+        ],
+        "summaryBn": "ফার্মগেটে অবৈধ বাস পার্কিংয়ের ফলে কাজী নজরুল ইসলাম এভিনিউতে তীব্র ট্রাফিক স্থবিরতা।",
+        "urgencyScore": 8,
+        "potentialHazards": [
+          "অফিসযাত্রীদের বিলম্ব",
+          "জরুরি অ্যাম্বুলেন্স আটকে থাকা"
+        ],
+        "suggestedCategory": "যানজট",
+        "suggestedSeverity": "high"
+      },
+      "supported_by": [
+        "user-general"
+      ],
+      "created_at": "2026-11-10T15:14:35.576383+00:00",
+      "updated_at": "2026-11-10T15:14:35.576383+00:00",
+      "comments": [],
+      "status_history": []
+    },
+    {
+      "id": "prob-1",
+      "tracking_code": "PG-2025-0101",
+      "user_id": "user-general",
+      "user_name": "তানভীর আহমেদ",
+      "user_phone": "01911000003",
+      "category_id": "cat-1",
+      "category": "রাস্তার ক্ষতি",
+      "subcategory": "বড় গর্ত/খানাখন্দ",
+      "title": "মিরপুর ১০ গোলচত্বরে গভীর গর্ত ও পিচ উঠে গিয়ে যান চলাচলে মারাত্মক বিঘ্ন",
+      "description": "মিরপুর ১০ মেট্রো স্টেশনের ৩ নম্বর পিলারের নিচে মূল সড়কে বেশ কয়েকটি বিশাল গর্ত তৈরি হয়েছে। রিকশা ও মোটরসাইকেল উল্টে নিয়মিত দুর্ঘটনা ঘটছে। বৃষ্টি হলে পানি জমে গর্ত দেখা যায় না। জরুরি মেরামতের অনুরোধ।",
+      "severity": "critical",
+      "status": "verified",
+      "district": "ঢাকা",
+      "area": "মিরপুর ১০",
+      "address": "মিরপুর ১০ নম্বর গোলচত্বর, মেট্রো পিলার নম্বর ৩ এর সংলগ্ন মূল সড়ক, ঢাকা-১২১৬",
+      "latitude": 23.8071,
+      "longitude": 90.3685,
+      "reported_at": "2025-02-10T09:30:00+00:00",
+      "resolved_at": null,
+      "upvotes_count": 42,
+      "comments_count": 5,
+      "views_count": 280,
+      "is_public": true,
+      "images": [
+        "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80"
+      ],
+      "resolution_notes": null,
+      "resolution_evidence_url": null,
+      "ai_analysis": {
+        "keywords": [
+          "মিরপুর ১০",
+          "মেট্রোরেল",
+          "সড়ক দুর্ঘটনা",
+          "খানাখন্দ"
+        ],
+        "summaryBn": "মিরপুর ১০ মেট্রোরেল স্টেশনের নিকটস্থ প্রধান সড়কে তীব্র খানাখন্দ। সড়ক দুর্ঘটনার আশঙ্কায় জরুরি ব্যবস্থা প্রয়োজন।",
+        "urgencyScore": 9.2,
+        "potentialHazards": [
+          "মোটরসাইকেল উল্টে যাওয়া",
+          "যানবাহন বিকল",
+          "তীব্র যানজট"
+        ],
+        "suggestedCategory": "রাস্তার ক্ষতি",
+        "suggestedSeverity": "critical"
+      },
+      "supported_by": [
+        "user-general",
+        "user-admin"
+      ],
+      "created_at": "2026-11-10T15:14:35.576383+00:00",
+      "updated_at": "2026-11-10T15:14:35.576383+00:00",
+      "comments": [],
+      "status_history": []
+    },
+    {
+      "id": "prob-3",
+      "tracking_code": "PG-2025-0103",
+      "user_id": "user-general",
+      "user_name": "আসিফ ইকবাল",
+      "user_phone": null,
+      "category_id": "cat-3",
+      "category": "জলাবদ্ধতা",
+      "subcategory": "রাস্তায় কোমর সমান পানি",
+      "title": "ধানমন্ডি ২৭ নম্বর রাপা প্লাজার সামনে ড্রেন উপচে দীর্ঘস্থায়ী জলাবদ্ধতা",
+      "description": "হালকা বৃষ্টিতেই ধানমন্ডি ২৭ প্রধান সড়ক ও মিরপুর রোডের সংযোগস্থলে পানি জমে যায়। ড্রেনের মুখে পলিথিন ও বর্জ্য আটকে থাকায় ঘণ্টার পর ঘণ্টা পানি নামতে পারে না। ছোট গাড়ি ও রিকশা বিকল হয়ে পড়ে।",
+      "severity": "high",
+      "status": "verified",
+      "district": "ঢাকা",
+      "area": "ধানমন্ডি ২৭",
+      "address": "রাপা প্লাজার সম্মুখস্থ মিরপুর রোড ক্রসিং, ধানমন্ডি ২৭, ঢাকা-১২০৯",
+      "latitude": 23.7538,
+      "longitude": 90.3768,
+      "reported_at": "2025-02-09T16:20:00+00:00",
+      "resolved_at": null,
+      "upvotes_count": 51,
+      "comments_count": 8,
+      "views_count": 340,
+      "is_public": true,
+      "images": [
+        "https://images.unsplash.com/photo-1547683905-f686c993aae5?auto=format&fit=crop&w=800&q=80"
+      ],
+      "resolution_notes": null,
+      "resolution_evidence_url": null,
+      "ai_analysis": {
+        "keywords": [
+          "ধানমন্ডি ২৭",
+          "রাপা প্লাজা",
+          "জলাবদ্ধতা",
+          "ড্রেনেজ ব্লক"
+        ],
+        "summaryBn": "ধানমন্ডি ২৭ নম্বর রাপা প্লাজা সংলগ্ন ড্রেনেজ ব্লকের কারণে জলাবদ্ধতা। ড্রেন পরিষ্কার ও পলি অপসারণ জরুরি।",
+        "urgencyScore": 8.4,
+        "potentialHazards": [
+          "যানবাহন ইঞ্জিন বিকল",
+          "পথচারী ড্রেনে পড়ে যাওয়ার ঝুঁকি"
+        ],
+        "suggestedCategory": "জলাবদ্ধতা",
+        "suggestedSeverity": "high"
+      },
+      "supported_by": [
+        "user-general",
+        "user-admin"
+      ],
+      "created_at": "2026-11-10T15:14:35.576383+00:00",
+      "updated_at": "2026-11-10T15:14:35.576383+00:00",
+      "comments": [],
+      "status_history": []
+    },
+    {
+      "id": "prob-7",
+      "tracking_code": "PG-2025-0107",
+      "user_id": "user-general",
+      "user_name": "কবির হোসেন",
+      "user_phone": null,
+      "category_id": "cat-1",
+      "category": "রাস্তার ক্ষতি",
+      "subcategory": "বড় গর্ত/খানাখন্দ",
+      "title": "চট্টগ্রাম আগ্রাবাদ এক্সেস রোডে বিশাল খানাখন্দ ও কার্পেটিং ধসে পড়া",
+      "description": "চট্টগ্রাম আগ্রাবাদ এক্সেস রোডে ভারী কনটেইনার লরি চলাচলের কারণে সড়কটির মাঝখানে পিচ দেবে গিয়ে বড় ধরনের গর্তের সৃষ্টি হয়েছে। রাতে বা বৃষ্টির সময় ছোট গাড়ি চাকা আটকে বিকল হচ্ছে।",
+      "severity": "high",
+      "status": "verified",
+      "district": "চট্টগ্রাম",
+      "area": "আগ্রাবাদ",
+      "address": "আগ্রাবাদ এক্সেস রোড, বেপজা সংলগ্ন এলাকা, ডবলমুরিং, চট্টগ্রাম",
+      "latitude": 22.3259,
+      "longitude": 91.8124,
+      "reported_at": "2025-02-08T14:00:00+00:00",
+      "resolved_at": null,
+      "upvotes_count": 48,
+      "comments_count": 6,
+      "views_count": 310,
+      "is_public": true,
+      "images": [
+        "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80"
+      ],
+      "resolution_notes": null,
+      "resolution_evidence_url": null,
+      "ai_analysis": {},
+      "supported_by": [
+        "user-general",
+        "user-admin"
+      ],
+      "created_at": "2026-11-10T15:14:35.576383+00:00",
+      "updated_at": "2026-11-10T15:14:35.576383+00:00",
+      "comments": [],
+      "status_history": []
+    },
+    {
+      "id": "prob-5",
+      "tracking_code": "PG-2025-0105",
+      "user_id": "user-general",
+      "user_name": "মাহমুদুল হক",
+      "user_phone": null,
+      "category_id": "cat-4",
+      "category": "বর্জ্য ব্যবস্থাপনা",
+      "subcategory": "খোলা রাস্তায় আবর্জনা",
+      "title": "উত্তরা ৪ নম্বর সেক্টর কল্যাণ সমিতির সামনে খোলা রাস্তায় আবর্জনার ভাগাড়",
+      "description": "সেক্টর ৪ এর পার্ক ও মসজিদ সংলগ্ন রাস্তায় প্রতিদিন আশপাশের রেস্তোরাঁ ও ভবনের বর্জ্য ফেলা হচ্ছে। সিটি কর্পোরেশনের গাড়ি নিয়মিত না আসায় কুকুর-বিড়াল তা ছড়িয়ে দিচ্ছে এবং প্রচণ্ড দুর্গন্ধে হাঁটাচলা অসম্ভব হয়ে পড়েছে।",
+      "severity": "medium",
+      "status": "resolved",
+      "district": "ঢাকা",
+      "area": "উত্তরা",
+      "address": "রোড নম্বর ৭, সেক্টর ৪, উত্তরা মডেল টাউন, ঢাকা-১২৩০",
+      "latitude": 23.868,
+      "longitude": 90.395,
+      "reported_at": "2025-02-05T10:00:00+00:00",
+      "resolved_at": "2025-02-08T15:30:00+00:00",
+      "upvotes_count": 29,
+      "comments_count": 4,
+      "views_count": 190,
+      "is_public": true,
+      "images": [
+        "https://images.unsplash.com/photo-1605600659908-0ef719419d41?auto=format&fit=crop&w=800&q=80"
+      ],
+      "resolution_notes": "ডিএনসিসি বর্জ্য ব্যবস্থাপনা দল সম্পূর্ণ স্থান পরিষ্কার করেছে এবং একটি ক্লোজড ডাস্টবিন বসিয়েছে।",
+      "resolution_evidence_url": "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=800&q=80",
+      "ai_analysis": {},
+      "supported_by": [
+        "user-general"
+      ],
+      "created_at": "2026-11-10T15:14:35.576383+00:00",
+      "updated_at": "2026-11-10T15:14:35.576383+00:00",
+      "comments": [],
+      "status_history": []
+    },
+    {
+      "id": "prob-1794330200334",
+      "tracking_code": "PG-2026-0110",
+      "user_id": "a162e418-7a3f-42e8-a9bf-d8627a21acee",
+      "user_name": "আসিফ ইকবাল",
+      "user_phone": "01788776655",
+      "category_id": "cat-1",
+      "category": "রাস্তার ক্ষতি",
+      "subcategory": null,
+      "title": "মিরপুর ১০ নম্বরে ম্যানহোলের ঢাকনা খোলা",
+      "description": "প্রধান সড়কের পাশে একটি ম্যানহোলের ঢাকনা ভাঙা অবস্থায় পড়ে আছে, পথচারীদের জন্য অত্যন্ত ঝুঁকিপূর্ণ।",
+      "severity": "high",
+      "status": "pending",
+      "district": "ঢাকা",
+      "area": "মিরপুর ১০",
+      "address": "মিরপুর ১০ গোলচত্বর সংলগ্ন",
+      "latitude": 23.8069,
+      "longitude": 90.3687,
+      "reported_at": "2026-11-10T17:03:20.334+00:00",
+      "resolved_at": null,
+      "upvotes_count": 1,
+      "comments_count": 0,
+      "views_count": 1,
+      "is_public": true,
+      "images": [
+        "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80"
+      ],
+      "resolution_notes": null,
+      "resolution_evidence_url": null,
+      "ai_analysis": {
+        "keywords": [
+          "রাস্তার ক্ষতি",
+          "নাগরিক সেবা",
+          "কমিউনিটি সমস্যা"
+        ],
+        "summaryBn": "রিপোর্টটি \"মিরপুর ১০ নম্বরে ম্যানহোলের ঢাকনা খোলা\" বিষয়বস্তুর সাথে সম্পর্কিত। নাগরিকদের দুর্ভোগ লাঘবে সংশ্লিষ্ট এলাকায় কার্যকর পদক্ষেপ গ্রহণ প্রয়োজন।",
+        "urgencyScore": 7.8,
+        "potentialHazards": [
+          "চলাচলে বিঘ্ন",
+          "দুর্ঘটনার আশঙ্কা"
+        ],
+        "suggestedCategory": "রাস্তার ক্ষতি",
+        "suggestedSeverity": "high"
+      },
+      "supported_by": [
+        "a162e418-7a3f-42e8-a9bf-d8627a21acee"
+      ],
+      "created_at": "2026-11-10T17:03:20.526809+00:00",
+      "updated_at": "2026-11-10T17:03:20.526809+00:00",
+      "comments": [],
+      "status_history": [
+        {
+          "old_status": "",
+          "new_status": "pending",
+          "changed_by_name": "আসিফ ইকবাল",
+          "reason": "নাগরিক কর্তৃক নতুন সমস্যা রিপোর্ট জমা দেওয়া হয়েছে",
+          "created_at": "2026-11-10T17:03:20.750561+00:00"
+        }
+      ]
+    },
+    {
+      "id": "prob-1794331519614",
+      "tracking_code": "PG-2026-0111",
+      "user_id": "9a3b242e-c01c-429a-8888-b2281918b660",
+      "user_name": "Liakat Hossain",
+      "user_phone": "01999868399",
+      "category_id": "cat-1",
+      "category": "রাস্তার ক্ষতি",
+      "subcategory": "বড় গর্ত/খানাখন্দ",
+      "title": "সংগর্ষ ছাত্রলীগের আন্দোলন ",
+      "description": "আফদেফদসগ",
+      "severity": "medium",
+      "status": "pending",
+      "district": "ঢাকা",
+      "area": "মিরপুর ১০",
+      "address": "মিরপুর ১০ নম্বর গোলচত্বর সংলগ্ন মূল সড়ক",
+      "latitude": 23.8729407,
+      "longitude": 90.3190549,
+      "reported_at": "2026-11-10T17:25:19.614+00:00",
+      "resolved_at": null,
+      "upvotes_count": 1,
+      "comments_count": 0,
+      "views_count": 1,
+      "is_public": true,
+      "images": [
+        "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80"
+      ],
+      "resolution_notes": null,
+      "resolution_evidence_url": null,
+      "ai_analysis": {
+        "keywords": [
+          "সংঘর্ষ",
+          "আন্দোলন",
+          "নিরাপত্তা",
+          "ছাত্রলীগ"
+        ],
+        "summaryBn": "শিরোনামে ছাত্র আন্দোলনের জেরে সংঘর্ষের কথা উল্লেখ করা হলেও বিস্তারিত বিবরণে কোনো অর্থপূর্ণ তথ্য দেওয়া হয়নি। তবে রাজনৈতিক সংঘাতের আশঙ্কায় এটি জননিরাপত্তার জন্য উদ্বেগের কারণ হতে পারে। পরিস্থিতি নিয়ন্ত্রণে যাচাই-বাছাই প্রয়োজন।",
+        "urgencyScore": 6,
+        "potentialHazards": [
+          "আইনশৃঙ্খলা পরিস্থিতির অবনতি",
+          "জননিরাপত্তা বিঘ্নিত হওয়া",
+          "সহিংসতার ঝুঁকি"
+        ],
+        "suggestedCategory": "নিরাপত্তা সংক্রান্ত সমস্যা",
+        "suggestedSeverity": "medium"
+      },
+      "supported_by": [
+        "9a3b242e-c01c-429a-8888-b2281918b660"
+      ],
+      "created_at": "2026-11-10T17:25:20.662349+00:00",
+      "updated_at": "2026-11-10T17:25:20.662349+00:00",
+      "comments": [],
+      "status_history": [
+        {
+          "old_status": "",
+          "new_status": "pending",
+          "changed_by_name": "Liakat Hossain",
+          "reason": "নাগরিক কর্তৃক নতুন সমস্যা রিপোর্ট জমা দেওয়া হয়েছে",
+          "created_at": "2026-11-10T17:25:21.164282+00:00"
+        }
+      ]
+    },
+    {
+      "id": "prob-1794332160639",
+      "tracking_code": "PG-2026-0112",
+      "user_id": "9a3b242e-c01c-429a-8888-b2281918b660",
+      "user_name": "Liakat Hossain",
+      "user_phone": "01999868399",
+      "category_id": "cat-1",
+      "category": "রাস্তার ক্ষতি",
+      "subcategory": "বড় গর্ত/খানাখন্দ",
+      "title": "দজফক্লাহফক্লা",
+      "description": "কশ্লফহক্লা",
+      "severity": "medium",
+      "status": "pending",
+      "district": "ঢাকা",
+      "area": "ডেহশ্লডবগফাল",
+      "address": "মিরপুর ১০ নম্বর গোলচত্বর সংলগ্ন মূল সড়ক",
+      "latitude": 23.8071,
+      "longitude": 90.3685,
+      "reported_at": "2026-11-10T17:36:00.639+00:00",
+      "resolved_at": null,
+      "upvotes_count": 1,
+      "comments_count": 0,
+      "views_count": 1,
+      "is_public": true,
+      "images": [
+        "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80"
+      ],
+      "resolution_notes": null,
+      "resolution_evidence_url": null,
+      "ai_analysis": {
+        "keywords": [
+          "রাস্তার ক্ষতি",
+          "নাগরিক সেবা",
+          "কমিউনিটি সমস্যা"
+        ],
+        "summaryBn": "রিপোর্টটি \"দজফক্লাহফক্লা\" বিষয়বস্তুর সাথে সম্পর্কিত। নাগরিকদের দুর্ভোগ লাঘবে সংশ্লিষ্ট এলাকায় কার্যকর পদক্ষেপ গ্রহণ প্রয়োজন।",
+        "urgencyScore": 5.5,
+        "potentialHazards": [
+          "চলাচলে বিঘ্ন",
+          "দুর্ঘটনার আশঙ্কা"
+        ],
+        "suggestedCategory": "রাস্তার ক্ষতি",
+        "suggestedSeverity": "medium"
+      },
+      "supported_by": [
+        "9a3b242e-c01c-429a-8888-b2281918b660"
+      ],
+      "created_at": "2026-11-10T17:36:00.835501+00:00",
+      "updated_at": "2026-11-10T17:36:00.835501+00:00",
+      "comments": [],
+      "status_history": [
+        {
+          "old_status": "",
+          "new_status": "pending",
+          "changed_by_name": "Liakat Hossain",
+          "reason": "নাগরিক কর্তৃক নতুন সমস্যা রিপোর্ট জমা দেওয়া হয়েছে",
+          "created_at": "2026-11-10T17:36:01.366031+00:00"
+        }
+      ]
+    }
+  ],
+  "auditLogs": [
+    {
+      "id": "log-1",
+      "admin_id": "user-admin",
+      "admin_name": "প্রকৌশলী রফিকুল ইসলাম (ডিএনসিসি)",
+      "action_type": "VERIFY_REPORT",
+      "target_entity": "problem_reports",
+      "target_id": "prob-1",
+      "details": {
+        "status": "verified",
+        "tracking_code": "PG-2025-0101"
+      },
+      "created_at": "2025-02-10T11:00:00Z"
+    }
+  ],
+  "notifications": [
+    {
+      "id": "notif-1794332076406",
+      "user_id": "00000000-0000-0000-0000-000000000003",
+      "problem_id": "prob-1794332076406",
+      "title_bn": "সমস্যা সফলভাবে জমা হয়েছে",
+      "message_bn": "আপনার সমস্যা \"রাস্তার বাতি জ্বলছে না\" জমা হয়েছে। ট্র্যাকিং কোড: PG-2026-0113",
+      "is_read": false,
+      "created_at": "2026-11-10T17:34:36.406Z"
+    },
+    {
+      "id": "notif-1794332065041",
+      "user_id": "00000000-0000-0000-0000-000000000003",
+      "problem_id": "prob-1794332065040",
+      "title_bn": "সমস্যা সফলভাবে জমা হয়েছে",
+      "message_bn": "আপনার সমস্যা \"উত্তরা ৩ নম্বর সেক্টরে রাস্তায় জল জমে থাকা\" জমা হয়েছে। ট্র্যাকিং কোড: PG-2026-0112",
+      "is_read": false,
+      "created_at": "2026-11-10T17:34:25.041Z"
+    },
+    {
+      "id": "notif-1794331800002",
+      "user_id": "00000000-0000-0000-0000-000000000003",
+      "problem_id": "prob-1794331800002",
+      "title_bn": "সমস্যা সফলভাবে জমা হয়েছে",
+      "message_bn": "আপনার সমস্যা \"রাস্তার লাইট নষ্ট\" জমা হয়েছে। ট্র্যাকিং কোড: PG-2026-0112",
+      "is_read": false,
+      "created_at": "2026-11-10T17:30:00.002Z"
+    },
+    {
+      "id": "notif-1794331105387",
+      "user_id": "00000000-0000-0000-0000-000000000001",
+      "problem_id": "prob-1794331105387",
+      "title_bn": "সমস্যা সফলভাবে জমা হয়েছে",
+      "message_bn": "আপনার সমস্যা \"Test 2\" জমা হয়েছে। ট্র্যাকিং কোড: PG-2026-0112",
+      "is_read": false,
+      "created_at": "2026-11-10T17:18:25.387Z"
+    },
+    {
+      "id": "notif-1794331105387",
+      "user_id": "00000000-0000-0000-0000-000000000001",
+      "problem_id": "prob-1794331105386",
+      "title_bn": "সমস্যা সফলভাবে জমা হয়েছে",
+      "message_bn": "আপনার সমস্যা \"Test 1\" জমা হয়েছে। ট্র্যাকিং কোড: PG-2026-0111",
+      "is_read": false,
+      "created_at": "2026-11-10T17:18:25.387Z"
+    },
+    {
+      "id": "notif-1794330200334",
+      "user_id": "a162e418-7a3f-42e8-a9bf-d8627a21acee",
+      "problem_id": "prob-1794330200334",
+      "title_bn": "সমস্যা সফলভাবে জমা হয়েছে",
+      "message_bn": "আপনার সমস্যা \"মিরপুর ১০ নম্বরে ম্যানহোলের ঢাকনা খোলা\" জমা হয়েছে। ট্র্যাকিং কোড: PG-2026-0110",
+      "is_read": false,
+      "created_at": "2026-11-10T17:03:20.334Z"
+    },
+    {
+      "id": "notif-1794330162238",
+      "user_id": "a162e418-7a3f-42e8-a9bf-d8627a21acee",
+      "problem_id": "prob-1794330162238",
+      "title_bn": "সমস্যা সফলভাবে জমা হয়েছে",
+      "message_bn": "আপনার সমস্যা \"মিরপুর ১০ নম্বরে ম্যানহোলের ঢাকনা খোলা\" জমা হয়েছে। ট্র্যাকিং কোড: PG-2026-0109",
+      "is_read": false,
+      "created_at": "2026-11-10T17:02:42.238Z"
+    },
+    {
+      "id": "notif-1",
+      "user_id": "user-general",
+      "problem_id": "prob-1",
+      "title_bn": "রিপোর্ট যাচাই সম্পন্ন হয়েছে",
+      "message_bn": "আপনার রিপোর্ট \"মিরপুর ১০ গোলচত্বরে গভীর গর্ত\" দায়িত্বপ্রাপ্ত অ্যাডমিন কর্তৃক যাচাই করা হয়েছে।",
+      "is_read": false,
+      "created_at": "2025-02-10T11:05:00Z"
+    }
+  ],
+  "aiRecommendations": []
+}
