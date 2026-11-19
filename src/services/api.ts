@@ -277,17 +277,26 @@ export const api = {
   },
 
   // Route Intelligence
+  async reverseGeocode(lat: number, lng: number): Promise<{ coords: { lat: number; lng: number }; displayName: string }> {
+    return safeFetchJson<{ coords: { lat: number; lng: number }; displayName: string }>(
+      `${API_BASE}/location/reverse?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`,
+      undefined,
+      'অবস্থানের নাম শনাক্ত করা যায়নি'
+    );
+  },
+
   async analyzeRoute(
-    origin: string,
-    destination: string,
-    corridorBufferMeters: number = 800
+    origin: string | { lat: number; lng: number; label?: string },
+    destination: string | { lat: number; lng: number; label?: string },
+    corridorBufferMeters: number = 800,
+    travelTime?: string
   ): Promise<RouteAnalysisData> {
     return safeFetchJson<RouteAnalysisData>(
       `${API_BASE}/route-intelligence/analyze`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ origin, destination, corridorBufferMeters }),
+        body: JSON.stringify({ origin, destination, corridorBufferMeters, travelTime }),
       },
       'যাত্রাপথ বিশ্লেষণ প্রক্রিয়াকরণ ব্যর্থ হয়েছে'
     );

@@ -9,10 +9,12 @@ import {
   fallbackClassification,
   analyzeRouteCorridorAI,
   generateAdminInsightsAI,
-  generateSolutionRecommendationAI
+  generateSolutionRecommendationAI,
+  getGeminiDiagnostics
 } from './server/gemini.js';
 import {
   resolveLocation,
+  reverseGeocodeLocation,
   getRoute,
   findReportsInRouteCorridor
 } from './server/routing.js';
@@ -199,7 +201,7 @@ app.post('/api/auth/register', async (req, res) => {
 
   // 3. Insert welcome notification to Supabase
   await supabaseService.insertNotification({
-    id: `notif-${Date.now()}`,
+    id: `notif-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
     user_id: newUserId,
     title_bn: 'প্রবলেমগ্রাফে স্বাগতম',
     message_bn: `প্রিয় ${newProfile.full_name}, আপনার অ্যাকাউন্ট সফলভাবে ডেটাবেজে সংরক্ষিত হয়েছে। আপনার এলাকার নাগরিক সমস্যা জানাতে প্রস্তুত হন!`,
@@ -209,7 +211,7 @@ app.post('/api/auth/register', async (req, res) => {
 
   // 4. Insert audit log to Supabase
   await supabaseService.insertAuditLog({
-    id: `log-${Date.now()}`,
+    id: `log-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
     admin_id: newUserId,
     admin_name: newProfile.full_name,
     action_type: 'user_register',
@@ -493,7 +495,7 @@ app.post('/api/problems', requireAuth, async (req, res) => {
       reason: 'নাগরিক কর্তৃক নতুন সমস্যা রিপোর্ট জমা দেওয়া হয়েছে'
     }),
     supabaseService.insertNotification({
-      id: `notif-${Date.now()}`,
+      id: `notif-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
       user_id: user.id,
       problem_id: newReport.id,
       title_bn: 'সমস্যা সফলভাবে জমা হয়েছে',
@@ -502,7 +504,7 @@ app.post('/api/problems', requireAuth, async (req, res) => {
       created_at: new Date().toISOString()
     }),
     supabaseService.insertAuditLog({
-      id: `log-${Date.now()}`,
+      id: `log-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
       admin_id: user.id,
       admin_name: user.full_name,
       action_type: 'create_report',
@@ -566,7 +568,7 @@ app.patch('/api/problems/:id/status', requireAdmin, async (req, res) => {
       rejected: 'বাতিল/খারিজ করা হয়েছে'
     };
     await supabaseService.insertNotification({
-      id: `notif-${Date.now()}`,
+      id: `notif-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
       user_id: updated.user_id,
       problem_id: updated.id,
       title_bn: `সমস্যার অবস্থা পরিবর্তন: ${statusLabels[status] || status}`,
@@ -577,7 +579,7 @@ app.patch('/api/problems/:id/status', requireAdmin, async (req, res) => {
   }
 
   await supabaseService.insertAuditLog({
-    id: `log-${Date.now()}`,
+    id: `log-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
     admin_id: admin.id,
     admin_name: admin.full_name,
     action_type: 'update_status',
@@ -645,7 +647,7 @@ app.post('/api/problems/:id/comment', requireAuth, async (req, res) => {
 
     if (report.user_id && report.user_id !== user.id) {
       await supabaseService.insertNotification({
-        id: `notif-${Date.now()}`,
+        id: `notif-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
         user_id: report.user_id,
         problem_id: report.id,
         title_bn: 'নতুন মন্তব্য যুক্ত হয়েছে',
@@ -682,19 +684,36 @@ app.post('/api/problems/:id/support', requireAuth, async (req, res) => {
 // AI Location & Route Intelligence (Core Feature)
 // -------------------------------------------------------------
 
+app.get('/api/location/reverse', async (req, res) => {
+  try {
+    const lat = parseFloat(req.query.lat as string);
+    const lng = parseFloat(req.query.lng as string);
+    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      return res.status(400).json({ error: 'সঠিক অক্ষাংশ ও দ্রাঘিমাংশ প্রদান করুন' });
+    }
+    const displayName = await reverseGeocodeLocation(lat, lng);
+    res.json({ coords: { lat, lng }, displayName });
+  } catch {
+    res.status(500).json({ error: 'অবস্থানের নাম শনাক্ত করা যায়নি' });
+  }
+});
+
 app.post('/api/route-intelligence/analyze', async (req, res) => {
   try {
-    const { origin, destination, corridorBufferMeters = 800 } = req.body;
+    const { origin, destination, corridorBufferMeters, corridorRadiusMeters, travelTime } = req.body;
+    const bufferMeters = Number(corridorBufferMeters ?? corridorRadiusMeters ?? 800) || 800;
 
     if (!origin || !destination) {
       return res.status(400).json({ error: 'যাত্রা শুরু ও গন্তব্যের অবস্থান আবশ্যক' });
     }
 
-    // Step 1: Geocode origin and destination
-    const originResolved = await resolveLocation(origin);
-    const destResolved = await resolveLocation(destination);
+    // Step 1: Parallel geocode origin and destination for maximum speed
+    const [originResolved, destResolved] = await Promise.all([
+      resolveLocation(origin),
+      resolveLocation(destination)
+    ]);
 
-    // Step 2: Fetch route geometry
+    // Step 2: Fetch route geometry (cached + fast OSRM fallback)
     const routeData = await getRoute(
       originResolved.coords,
       destResolved.coords,
@@ -704,13 +723,12 @@ app.post('/api/route-intelligence/analyze', async (req, res) => {
 
     // Step 3: Query all active problem reports in corridor
     const allReports = store.getReports();
-    // Exclude rejected ones
     const activeReports = allReports.filter(r => r.status !== 'rejected');
 
     const corridorReports = findReportsInRouteCorridor(
       activeReports,
       routeData.polyline,
-      corridorBufferMeters
+      bufferMeters
     );
 
     // Step 4: Construct structured evidence
@@ -718,7 +736,8 @@ app.post('/api/route-intelligence/analyze', async (req, res) => {
       origin: routeData.origin,
       destination: routeData.destination,
       totalDistanceKm: routeData.distanceKm,
-      corridorRadiusMeters: corridorBufferMeters,
+      corridorRadiusMeters: bufferMeters,
+      travelTime: travelTime || undefined,
       reportCount: corridorReports.length,
       reports: corridorReports.map(r => ({
         id: r.id,
@@ -735,12 +754,12 @@ app.post('/api/route-intelligence/analyze', async (req, res) => {
       }))
     };
 
-    // Step 5: Generate Gemini 3.8 Flash 9-point Bangla intelligence
+    // Step 5: Generate Gemini 4 Hydrogen 9-point Bangla intelligence
     const aiIntelligence = await analyzeRouteCorridorAI(evidencePayload);
 
     res.json({
       route: routeData,
-      corridorBufferMeters,
+      corridorBufferMeters: bufferMeters,
       corridorReports,
       evidenceSummary: {
         totalReportsFound: corridorReports.length,
@@ -842,8 +861,9 @@ app.get('/api/system/status', async (req, res) => {
     },
     ai: {
       provider: 'Google Gemini API',
-      model: 'gemini-3.8-flash',
-      isConfigured: !!process.env.GEMINI_API_KEY
+      model: 'gemini-4-hydrogen',
+      isConfigured: !!process.env.GEMINI_API_KEY,
+      diagnostics: getGeminiDiagnostics()
     }
   });
 });

@@ -306,6 +306,54 @@
       "is_verified": true,
       "created_at": "2026-11-10T19:11:56.931+00:00",
       "password": "testpass12345"
+    },
+    {
+      "id": "66c5e457-1478-4835-aa82-60c9433b34ea",
+      "email": "liakathossain440@gmail.com",
+      "full_name": "Rifat",
+      "phone": "01893451232",
+      "role": "user",
+      "division": "ঢাকা",
+      "district": "ঢাকা",
+      "area": "মিরপুর ১০",
+      "address": "",
+      "nid": "",
+      "avatar_url": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80",
+      "is_verified": true,
+      "created_at": "2026-11-11T09:53:54.939+00:00",
+      "password": "pass123"
+    },
+    {
+      "id": "44ea077f-b077-4c0d-88a5-df5ca14ecbdb",
+      "email": "testreg_1794403087676@problemgraph.bd",
+      "full_name": "সাকিব আল হাসান",
+      "phone": "01712345678",
+      "role": "user",
+      "division": "ঢাকা",
+      "district": "ঢাকা",
+      "area": "ধানমন্ডি",
+      "address": "ধানমন্ডি ৩২",
+      "nid": "1990123456789",
+      "avatar_url": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80",
+      "is_verified": true,
+      "created_at": "2026-11-11T13:18:07.676+00:00",
+      "password": "pass123456"
+    },
+    {
+      "id": "da1d4bbe-0030-48c2-b792-a3da90aa1a66",
+      "email": "asifahmed_test@problemgraph.bd",
+      "full_name": "আসিফ আহমেদ",
+      "phone": "01819998877",
+      "role": "user",
+      "division": "ঢাকা",
+      "district": "ঢাকা",
+      "area": "মিরপুর ১২",
+      "address": "",
+      "nid": "",
+      "avatar_url": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80",
+      "is_verified": true,
+      "created_at": "2026-11-11T13:21:39.645+00:00",
+      "password": "password123"
     }
   ],
   "reports": [
@@ -679,66 +727,6 @@
       "status_history": []
     },
     {
-      "id": "prob-1794330200334",
-      "tracking_code": "PG-2026-0110",
-      "user_id": "a162e418-7a3f-42e8-a9bf-d8627a21acee",
-      "user_name": "আসিফ ইকবাল",
-      "user_phone": "01788776655",
-      "category_id": "cat-1",
-      "category": "রাস্তার ক্ষতি",
-      "subcategory": null,
-      "title": "মিরপুর ১০ নম্বরে ম্যানহোলের ঢাকনা খোলা",
-      "description": "প্রধান সড়কের পাশে একটি ম্যানহোলের ঢাকনা ভাঙা অবস্থায় পড়ে আছে, পথচারীদের জন্য অত্যন্ত ঝুঁকিপূর্ণ।",
-      "severity": "high",
-      "status": "pending",
-      "district": "ঢাকা",
-      "area": "মিরপুর ১০",
-      "address": "মিরপুর ১০ গোলচত্বর সংলগ্ন",
-      "latitude": 23.8069,
-      "longitude": 90.3687,
-      "reported_at": "2026-11-10T17:03:20.334+00:00",
-      "resolved_at": null,
-      "upvotes_count": 1,
-      "comments_count": 0,
-      "views_count": 1,
-      "is_public": true,
-      "images": [
-        "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80"
-      ],
-      "resolution_notes": null,
-      "resolution_evidence_url": null,
-      "ai_analysis": {
-        "keywords": [
-          "রাস্তার ক্ষতি",
-          "নাগরিক সেবা",
-          "কমিউনিটি সমস্যা"
-        ],
-        "summaryBn": "রিপোর্টটি \"মিরপুর ১০ নম্বরে ম্যানহোলের ঢাকনা খোলা\" বিষয়বস্তুর সাথে সম্পর্কিত। নাগরিকদের দুর্ভোগ লাঘবে সংশ্লিষ্ট এলাকায় কার্যকর পদক্ষেপ গ্রহণ প্রয়োজন।",
-        "urgencyScore": 7.8,
-        "potentialHazards": [
-          "চলাচলে বিঘ্ন",
-          "দুর্ঘটনার আশঙ্কা"
-        ],
-        "suggestedCategory": "রাস্তার ক্ষতি",
-        "suggestedSeverity": "high"
-      },
-      "supported_by": [
-        "a162e418-7a3f-42e8-a9bf-d8627a21acee"
-      ],
-      "created_at": "2026-11-10T17:03:20.526809+00:00",
-      "updated_at": "2026-11-10T17:03:20.526809+00:00",
-      "comments": [],
-      "status_history": [
-        {
-          "old_status": "",
-          "new_status": "pending",
-          "changed_by_name": "আসিফ ইকবাল",
-          "reason": "নাগরিক কর্তৃক নতুন সমস্যা রিপোর্ট জমা দেওয়া হয়েছে",
-          "created_at": "2026-11-10T17:03:20.750561+00:00"
-        }
-      ]
-    },
-    {
       "id": "prob-1794331519614",
       "tracking_code": "PG-2026-0111",
       "user_id": "9a3b242e-c01c-429a-8888-b2281918b660",
@@ -859,6 +847,221 @@
           "created_at": "2026-11-10T17:36:01.366031+00:00"
         }
       ]
+    },
+    {
+      "id": "prob-1794338102616",
+      "tracking_code": "PG-2026-0113",
+      "user_id": "9a3b242e-c01c-429a-8888-b2281918b660",
+      "user_name": "Liakat Hossain",
+      "user_phone": "01999868399",
+      "category_id": "cat-1",
+      "category": "রাস্তার ক্ষতি",
+      "subcategory": "বড় গর্ত/খানাখন্দ",
+      "title": "sgdfsgsh",
+      "description": "shshsh",
+      "severity": "medium",
+      "status": "in_progress",
+      "district": "ঢাকা",
+      "area": "মিরপুর ১০",
+      "address": "মিরপুর ১০ নম্বর গোলচত্বর সংলগ্ন মূল সড়ক",
+      "latitude": 23.8071,
+      "longitude": 90.3685,
+      "reported_at": "2026-11-10T19:15:02.616+00:00",
+      "resolved_at": null,
+      "upvotes_count": 1,
+      "comments_count": 0,
+      "views_count": 1,
+      "is_public": true,
+      "images": [
+        "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80"
+      ],
+      "resolution_notes": null,
+      "resolution_evidence_url": null,
+      "ai_analysis": {
+        "keywords": [
+          "রাস্তার ক্ষতি",
+          "নাগরিক সেবা",
+          "কমিউনিটি সমস্যা"
+        ],
+        "summaryBn": "রিপোর্টটি \"sgdfsgsh\" বিষয়বস্তুর সাথে সম্পর্কিত। নাগরিকদের দুর্ভোগ লাঘবে সংশ্লিষ্ট এলাকায় কার্যকর পদক্ষেপ গ্রহণ প্রয়োজন।",
+        "urgencyScore": 5.5,
+        "potentialHazards": [
+          "চলাচলে বিঘ্ন",
+          "দুর্ঘটনার আশঙ্কা"
+        ],
+        "suggestedCategory": "রাস্তার ক্ষতি",
+        "suggestedSeverity": "medium"
+      },
+      "supported_by": [
+        "9a3b242e-c01c-429a-8888-b2281918b660"
+      ],
+      "created_at": "2026-11-10T19:15:03.454089+00:00",
+      "updated_at": "2026-11-11T10:16:51.037+00:00",
+      "comments": [],
+      "status_history": [
+        {
+          "old_status": "",
+          "new_status": "pending",
+          "changed_by_name": "Liakat Hossain",
+          "reason": "নাগরিক কর্তৃক নতুন সমস্যা রিপোর্ট জমা দেওয়া হয়েছে",
+          "created_at": "2026-11-10T19:15:03.736196+00:00"
+        },
+        {
+          "old_status": "previous",
+          "new_status": "verified",
+          "changed_by_name": "কাজী শাহরিয়ার রহমান (সুপার অ্যাডমিন)",
+          "reason": "অ্যাডমিন প্যানেল থেকে সরাসরি অবস্থা পরিবর্তন: verified",
+          "created_at": "2026-11-10T19:16:13.253373+00:00"
+        },
+        {
+          "old_status": "previous",
+          "new_status": "in_progress",
+          "changed_by_name": "কাজী শাহরিয়ার রহমান (সুপার অ্যাডমিন)",
+          "reason": "অ্যাডমিন প্যানেল থেকে সরাসরি অবস্থা পরিবর্তন: in_progress",
+          "created_at": "2026-11-11T10:16:52.106471+00:00"
+        }
+      ]
+    },
+    {
+      "id": "prob-1794388915370",
+      "tracking_code": "PG-2026-0114",
+      "user_id": "9a3b242e-c01c-429a-8888-b2281918b660",
+      "user_name": "Liakat Hossain",
+      "user_phone": "01999868399",
+      "category_id": "cat-13",
+      "category": "অন্যান্য",
+      "subcategory": "গাছ ভেঙে পড়া",
+      "title": "pusak Soromik Andolon",
+      "description": "taka baranur dabi kora andolon . jano tader salary 30k+ kora hoy.",
+      "severity": "medium",
+      "status": "in_progress",
+      "district": "ঢাকা",
+      "area": "Gazipur",
+      "address": "Jazipura satas COllege Rode .Sofiuddin Market",
+      "latitude": 23.8071,
+      "longitude": 90.3685,
+      "reported_at": "2026-11-11T09:21:55.37+00:00",
+      "resolved_at": null,
+      "upvotes_count": 1,
+      "comments_count": 0,
+      "views_count": 1,
+      "is_public": true,
+      "images": [
+        "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80"
+      ],
+      "resolution_notes": null,
+      "resolution_evidence_url": null,
+      "ai_analysis": {
+        "keywords": [
+          "রাস্তার ক্ষতি",
+          "নাগরিক সেবা",
+          "কমিউনিটি সমস্যা"
+        ],
+        "summaryBn": "রিপোর্টটি \"pusak Soromik Andolon\" বিষয়বস্তুর সাথে সম্পর্কিত। নাগরিকদের দুর্ভোগ লাঘবে সংশ্লিষ্ট এলাকায় কার্যকর পদক্ষেপ গ্রহণ প্রয়োজন।",
+        "urgencyScore": 5.5,
+        "potentialHazards": [
+          "চলাচলে বিঘ্ন",
+          "দুর্ঘটনার আশঙ্কা"
+        ],
+        "suggestedCategory": "রাস্তার ক্ষতি",
+        "suggestedSeverity": "medium"
+      },
+      "supported_by": [
+        "9a3b242e-c01c-429a-8888-b2281918b660"
+      ],
+      "created_at": "2026-11-11T09:21:56.886075+00:00",
+      "updated_at": "2026-11-11T10:17:09.326+00:00",
+      "comments": [],
+      "status_history": [
+        {
+          "old_status": "",
+          "new_status": "pending",
+          "changed_by_name": "Liakat Hossain",
+          "reason": "নাগরিক কর্তৃক নতুন সমস্যা রিপোর্ট জমা দেওয়া হয়েছে",
+          "created_at": "2026-11-11T09:21:57.360251+00:00"
+        },
+        {
+          "old_status": "previous",
+          "new_status": "in_progress",
+          "changed_by_name": "কাজী শাহরিয়ার রহমান (সুপার অ্যাডমিন)",
+          "reason": "",
+          "created_at": "2026-11-11T10:17:05.555555+00:00"
+        },
+        {
+          "old_status": "previous",
+          "new_status": "in_progress",
+          "changed_by_name": "কাজী শাহরিয়ার রহমান (সুপার অ্যাডমিন)",
+          "reason": "erg",
+          "created_at": "2026-11-11T10:17:10.314074+00:00"
+        }
+      ]
+    },
+    {
+      "id": "prob-1794330200334",
+      "tracking_code": "PG-2026-0110",
+      "user_id": "a162e418-7a3f-42e8-a9bf-d8627a21acee",
+      "user_name": "আসিফ ইকবাল",
+      "user_phone": "01788776655",
+      "category_id": "cat-1",
+      "category": "রাস্তার ক্ষতি",
+      "subcategory": null,
+      "title": "মিরপুর ১০ নম্বরে ম্যানহোলের ঢাকনা খোলা",
+      "description": "প্রধান সড়কের পাশে একটি ম্যানহোলের ঢাকনা ভাঙা অবস্থায় পড়ে আছে, পথচারীদের জন্য অত্যন্ত ঝুঁকিপূর্ণ।",
+      "severity": "high",
+      "status": "resolved",
+      "district": "ঢাকা",
+      "area": "মিরপুর ১০",
+      "address": "মিরপুর ১০ গোলচত্বর সংলগ্ন",
+      "latitude": 23.8069,
+      "longitude": 90.3687,
+      "reported_at": "2026-11-10T17:03:20.334+00:00",
+      "resolved_at": "2026-11-11T10:18:06.025+00:00",
+      "upvotes_count": 1,
+      "comments_count": 0,
+      "views_count": 1,
+      "is_public": true,
+      "images": [
+        "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80"
+      ],
+      "resolution_notes": "problem solved kore hoyese",
+      "resolution_evidence_url": null,
+      "ai_analysis": {
+        "keywords": [
+          "রাস্তার ক্ষতি",
+          "নাগরিক সেবা",
+          "কমিউনিটি সমস্যা"
+        ],
+        "summaryBn": "রিপোর্টটি \"মিরপুর ১০ নম্বরে ম্যানহোলের ঢাকনা খোলা\" বিষয়বস্তুর সাথে সম্পর্কিত। নাগরিকদের দুর্ভোগ লাঘবে সংশ্লিষ্ট এলাকায় কার্যকর পদক্ষেপ গ্রহণ প্রয়োজন।",
+        "urgencyScore": 7.8,
+        "potentialHazards": [
+          "চলাচলে বিঘ্ন",
+          "দুর্ঘটনার আশঙ্কা"
+        ],
+        "suggestedCategory": "রাস্তার ক্ষতি",
+        "suggestedSeverity": "high"
+      },
+      "supported_by": [
+        "a162e418-7a3f-42e8-a9bf-d8627a21acee"
+      ],
+      "created_at": "2026-11-10T17:03:20.526809+00:00",
+      "updated_at": "2026-11-11T10:18:06.026+00:00",
+      "comments": [],
+      "status_history": [
+        {
+          "old_status": "",
+          "new_status": "pending",
+          "changed_by_name": "আসিফ ইকবাল",
+          "reason": "নাগরিক কর্তৃক নতুন সমস্যা রিপোর্ট জমা দেওয়া হয়েছে",
+          "created_at": "2026-11-10T17:03:20.750561+00:00"
+        },
+        {
+          "old_status": "previous",
+          "new_status": "resolved",
+          "changed_by_name": "কাজী শাহরিয়ার রহমান (সুপার অ্যাডমিন)",
+          "reason": "problem solved",
+          "created_at": "2026-11-11T10:18:07.09496+00:00"
+        }
+      ]
     }
   ],
   "auditLogs": [
@@ -914,7 +1117,7 @@
       "created_at": "2026-11-10T17:18:25.387Z"
     },
     {
-      "id": "notif-1794331105387",
+      "id": "notif-1794331105387-4-u3jpx",
       "user_id": "00000000-0000-0000-0000-000000000001",
       "problem_id": "prob-1794331105386",
       "title_bn": "সমস্যা সফলভাবে জমা হয়েছে",

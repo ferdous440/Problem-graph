@@ -412,7 +412,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onNaviga
       case 'map':
         return { title: 'ভৌগোলিক হটস্পট ও সমস্যা ম্যাপ', desc: 'পুরো বাংলাদেশের সক্রিয় সমস্যা ক্লাস্টার ও অবস্থান' };
       case 'insights':
-        return { title: 'এআই ইনসাইটস ইঞ্জিন (Gemini 3.8 Flash)', desc: 'ডেটাবেজের তথ্য বিশ্লেষণ করে সিটি কর্পোরেশনের জন্য কৌশলগত পরামর্শ' };
+        return { title: 'এআই ইনসাইটস ইঞ্জিন (Gemini 4 Hydrogen)', desc: 'ডেটাবেজের তথ্য বিশ্লেষণ করে সিটি কর্পোরেশনের জন্য কৌশলগত পরামর্শ' };
       case 'recommendations':
         return { title: 'সংশ্লিষ্ট সংস্থার জন্য এআই সমাধান সুপারিশপত্র', desc: 'ডিএনসিসি, ডিএসসিসি, ওয়াসা ও ট্রাফিকের নিকট আনুষ্ঠানিক সুপারিশ ড্রাফট' };
       case 'audit':
@@ -1239,7 +1239,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onNaviga
                   <div className="text-xs text-slate-600 space-y-2">
                     <div className="flex justify-between">
                       <span>মডেল:</span>
-                      <span className="font-mono font-bold text-teal-700">Gemini 3.8 Flash</span>
+                      <span className="font-mono font-bold text-teal-700">Gemini 4 Hydrogen</span>
                     </div>
                     <div className="flex justify-between">
                       <span>সার্ভার সাইড প্রক্সি:</span>

@@ -1,7 +1,10 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, ThinkingLevel, Type } from '@google/genai';
 import dotenv from 'dotenv';
 
 dotenv.config();
+
+const GEMINI_PRIMARY_MODEL = 'gemini-4-hydrogen';
+const GEMINI_FAST_FALLBACK_MODEL = 'gemini-3.1-flash-lite';
 
 // Initialize Google GenAI client with required header
 const ai = new GoogleGenAI({
@@ -12,6 +15,65 @@ const ai = new GoogleGenAI({
     },
   },
 });
+
+function parseCleanJson<T>(rawText: string | undefined): T {
+  const cleaned = (rawText || '{}')
+    .trim()
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/```\s*$/i, '')
+    .trim();
+  return JSON.parse(cleaned) as T;
+}
+
+async function generateJsonWithFailover<T>(
+  prompt: string,
+  responseSchema: any,
+  primaryTimeoutMs: number = 8000,
+  fallbackTimeoutMs: number = 8000,
+  preferFast: boolean = false
+): Promise<{ data: T; modelUsed: string; latencyMs: number }> {
+  const overallStart = Date.now();
+  const firstModel = preferFast ? GEMINI_FAST_FALLBACK_MODEL : GEMINI_PRIMARY_MODEL;
+  const firstThinking = preferFast ? ThinkingLevel.MINIMAL : ThinkingLevel.LOW;
+  const secondModel = preferFast ? GEMINI_PRIMARY_MODEL : GEMINI_FAST_FALLBACK_MODEL;
+  const secondThinking = preferFast ? ThinkingLevel.LOW : ThinkingLevel.MINIMAL;
+
+  const callModel = async (model: string, thinkingLevel: ThinkingLevel, timeoutMs: number): Promise<T> => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const reqPromise = ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+          thinkingConfig: { thinkingLevel },
+          responseMimeType: 'application/json',
+          responseSchema,
+        },
+      }).then((response) => parseCleanJson<T>(response.text));
+
+      const timerPromise = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${model} timeout after ${timeoutMs}ms`)), timeoutMs);
+      });
+
+      return await Promise.race([reqPromise, timerPromise]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  };
+
+  try {
+    const data = await callModel(firstModel, firstThinking, primaryTimeoutMs);
+    return { data, modelUsed: firstModel, latencyMs: Date.now() - overallStart };
+  } catch (primaryErr: any) {
+    console.log(
+      `[AI Route] Switching from ${firstModel} to ${secondModel}:`,
+      primaryErr?.status || primaryErr?.message || 'unavailable'
+    );
+    const data = await callModel(secondModel, secondThinking, fallbackTimeoutMs);
+    return { data, modelUsed: secondModel, latencyMs: Date.now() - overallStart };
+  }
+}
 
 export interface ProblemClassificationResult {
   suggestedCategory: string;
@@ -27,6 +89,7 @@ export interface RouteAnalysisEvidence {
   destination: string;
   totalDistanceKm: number;
   corridorRadiusMeters: number;
+  travelTime?: string;
   reportCount: number;
   reports: Array<{
     id: string;
@@ -76,15 +139,31 @@ export interface SolutionRecommendationResult {
   disclaimerBn: string;
 }
 
+// Fast TTL cache for route intelligence responses (2 minutes)
+const routeAiCache = new Map<string, { result: RouteAnalysisResult; ts: number }>();
+const ROUTE_AI_CACHE_TTL_MS = 2 * 60 * 1000;
+
+const geminiDiag = {
+  lastSource: 'none' as 'none' | 'gemini' | 'cache' | 'fallback' | 'timeout',
+  lastModel: '' as string,
+  lastLatencyMs: 0,
+  lastError: '' as string,
+  lastUpdatedAt: '' as string,
+};
+
+export function getGeminiDiagnostics() {
+  return { ...geminiDiag };
+}
+
 /**
- * AI Problem Classification using Gemini 3.8 Flash
+ * AI Problem Classification using Gemini with fast failover
  */
 export async function classifyProblemReport(
   title: string,
   description: string,
   userCategory?: string,
   userSeverity?: string,
-  timeoutMs: number = 1200
+  timeoutMs: number = 2000
 ): Promise<ProblemClassificationResult> {
   const instantResult = fallbackClassification(title, description, userCategory, userSeverity);
 
@@ -94,64 +173,54 @@ export async function classifyProblemReport(
 
   const prompt = `
 আপনি 'প্রবলেমগ্রাফ' প্ল্যাটফর্মের এআই ক্লাসিফায়ার বিশেষজ্ঞ।
-ব্যবহারকারীর জমা দেওয়া নাগরিক সমস্যার বিবরণটি বিশ্লেষণ করুন এবং শুদ্ধ বাংলায় ফলাফল প্রদান করুন।
+ব্যবহারকারীর জমা দেওয়া নাগরিক সমস্যার বিবরণটি বিশ্লেষণ করে শুদ্ধ বাংলায় JSON ফলাফল দিন।
 
-সমস্যার শিরোনাম: "${title}"
-সমস্যার বিস্তারিত বিবরণ: "${description}"
-ব্যবহারকারীর ক্যাটাগরি: "${userCategory || 'উল্লেখ নেই'}"
-ব্যবহারকারীর প্রাথমিক গুরুত্ব: "${userSeverity || 'উল্লেখ নেই'}"
+শিরোনাম: "${title}"
+বিবরণ: "${description}"
+প্রাথমিক ক্যাটাগরি: "${userCategory || 'উল্লেখ নেই'}"
+প্রাথমিক গুরুত্ব: "${userSeverity || 'উল্লেখ নেই'}"
 
-ক্যাটাগরি অপশনসমূহ: 
-যানজট, রাস্তার ক্ষতি, জলাবদ্ধতা, বর্জ্য ব্যবস্থাপনা, পানি সমস্যা, বিদ্যুৎ সমস্যা, গ্যাস সমস্যা, ড্রেনেজ সমস্যা, নির্মাণকাজ, গণপরিবহন সমস্যা, পরিবেশ দূষণ, নিরাপত্তা সংক্রান্ত সমস্যা, অন্যান্য।
-
-গুরুত্ব অপশন: 
-low (কম), medium (মাঝারি), high (বেশি), critical (অত্যন্ত জরুরি)।
-
-ফলাফলটি STRICT JSON ফরম্যাটে দিন:
-{
-  "suggestedCategory": "ক্যাটাগরির নাম",
-  "suggestedSeverity": "low" | "medium" | "high" | "critical",
-  "summaryBn": "সমস্যার ২-৩ বাক্যের সুস্পষ্ট বাংলা সারসংক্ষেপ",
-  "keywords": ["কীওয়ার্ড১", "কীওয়ার্ড২", "কীওয়ার্ড৩"],
-  "potentialHazards": ["ঝুঁকি১", "ঝুঁকি২"],
-  "urgencyScore": 1 থেকে 10 এর মধ্যে সংখ্যা
-}
+ক্যাটাগরি অপশন: যানজট, রাস্তার ক্ষতি, জলাবদ্ধতা, বর্জ্য ব্যবস্থাপনা, পানি সমস্যা, বিদ্যুৎ সমস্যা, গ্যাস সমস্যা, ড্রেনেজ সমস্যা, নির্মাণকাজ, গণপরিবহন সমস্যা, পরিবেশ দূষণ, নিরাপত্তা সংক্রান্ত সমস্যা, অন্যান্য।
+গুরুত্ব অপশন: low, medium, high, critical.
 `;
 
   try {
-    const aiPromise = (async () => {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-        },
-      });
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        suggestedCategory: { type: Type.STRING },
+        suggestedSeverity: { type: Type.STRING },
+        summaryBn: { type: Type.STRING },
+        keywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+        potentialHazards: { type: Type.ARRAY, items: { type: Type.STRING } },
+        urgencyScore: { type: Type.NUMBER },
+      },
+      required: ['suggestedCategory', 'suggestedSeverity', 'summaryBn', 'keywords', 'potentialHazards', 'urgencyScore'],
+    };
 
-      const text = response.text?.trim() || '{}';
-      const parsed = JSON.parse(text);
-      return {
-        suggestedCategory: parsed.suggestedCategory || userCategory || instantResult.suggestedCategory,
-        suggestedSeverity: parsed.suggestedSeverity || userSeverity || instantResult.suggestedSeverity,
-        summaryBn: parsed.summaryBn || instantResult.summaryBn,
-        keywords: parsed.keywords || instantResult.keywords,
-        potentialHazards: parsed.potentialHazards || instantResult.potentialHazards,
-        urgencyScore: parsed.urgencyScore || instantResult.urgencyScore,
-      };
-    })();
+    const { data: parsed } = await generateJsonWithFailover<Partial<ProblemClassificationResult>>(
+      prompt,
+      schema,
+      Math.max(timeoutMs, 5000),
+      5000,
+      true
+    );
 
-    const timeoutPromise = new Promise<ProblemClassificationResult>((resolve) => {
-      setTimeout(() => resolve(instantResult), timeoutMs);
-    });
-
-    return await Promise.race([aiPromise, timeoutPromise]);
-  } catch (error) {
+    return {
+      suggestedCategory: parsed.suggestedCategory || userCategory || instantResult.suggestedCategory,
+      suggestedSeverity: (parsed.suggestedSeverity as any) || userSeverity || instantResult.suggestedSeverity,
+      summaryBn: parsed.summaryBn || instantResult.summaryBn,
+      keywords: Array.isArray(parsed.keywords) ? parsed.keywords : instantResult.keywords,
+      potentialHazards: Array.isArray(parsed.potentialHazards) ? parsed.potentialHazards : instantResult.potentialHazards,
+      urgencyScore: typeof parsed.urgencyScore === 'number' ? parsed.urgencyScore : instantResult.urgencyScore,
+    };
+  } catch {
     return instantResult;
   }
 }
 
 /**
- * Route Corridor Analysis
+ * Route Corridor Analysis using Gemini 4 Hydrogen + fast Gemini 3.1 Flash Lite failover & cache
  * STRICT adherence to factual evidence:
  * - Never invent reports or traffic conditions
  * - If no reports exist along corridor, clearly state data coverage is insufficient
@@ -159,75 +228,113 @@ low (কম), medium (মাঝারি), high (বেশি), critical (অত
 export async function analyzeRouteCorridorAI(
   evidence: RouteAnalysisEvidence
 ): Promise<RouteAnalysisResult> {
+  const reportSig = evidence.reports.map(r => `${r.id}:${r.status}`).join(',');
+  const cacheKey = `${evidence.origin}|${evidence.destination}|${evidence.corridorRadiusMeters}|${evidence.travelTime || ''}|${reportSig}`;
+  const cached = routeAiCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < ROUTE_AI_CACHE_TTL_MS) {
+    geminiDiag.lastSource = 'cache';
+    geminiDiag.lastLatencyMs = 0;
+    geminiDiag.lastUpdatedAt = new Date().toISOString();
+    return cached.result;
+  }
+
+  const instantFallback = generateCorridorFallback(evidence);
+
+  if (!process.env.GEMINI_API_KEY) {
+    geminiDiag.lastSource = 'fallback';
+    geminiDiag.lastError = 'Missing GEMINI_API_KEY';
+    return instantFallback;
+  }
+
+  // Compact evidence summary to reduce prompt tokens and speed up Gemini generation
+  const compactReports = evidence.reports.slice(0, 20).map(r => ({
+    code: r.trackingCode,
+    title: r.title,
+    cat: r.category,
+    sev: r.severity,
+    status: r.status,
+    area: r.area,
+    distM: r.distanceFromRouteMeters,
+    date: r.reportedAt?.split('T')[0] || r.reportedAt,
+  }));
+
   const prompt = `
-আপনি 'প্রবলেমগ্রাফ' প্ল্যাটফর্মের প্রধান এআই ট্রাভেল ও লোকেশন ইন্টেলিজেন্স বিশেষজ্ঞ।
-যাত্রাপথের করিডোরে প্রাপ্ত প্রকৃত নাগরিক সমস্যা রিপোর্টের ওপর ভিত্তি করে যাত্রীদের জন্য বিশ্লেষণ ও সতর্কবার্তা প্রস্তুত করুন।
+আপনি 'প্রবলেমগ্রাফ' প্ল্যাটফর্মের এআই ট্রাভেল ইন্টেলিজেন্স বিশেষজ্ঞ।
+শুধুমাত্র নিচের প্রকৃত নাগরিক রিপোর্টের ওপর ভিত্তি করে প্রমিত ও সংক্ষিপ্ত বাংলায় যাত্রাপথের বিশ্লেষণ দিন। কাল্পনিক কোনো তথ্য যোগ করবেন না। রিপোর্ট না থাকলে তা স্পষ্টভাবে জানান।
 
-কঠোর নিয়মাবলী:
-১. কাল্পনিক বা অস্তিত্বহীন কোনো সমস্যার রিপোর্ট তৈরি করবেন না।
-২. নিচে দেওয়া 'প্রমাণ উপাত্ত' (Evidence reports)-এ যা আছে শুধুমাত্র তার ওপর ভিত্তি করে লিখুন।
-৩. যদি কোনো সমস্যা না থাকে তবে স্পষ্টভাবে উল্লেখ করবেন যে ডেটা অনুযায়ী কোনো রিপোর্ট পাওয়া যায়নি, তবে এর অর্থ এই নয় যে বাস্তবে কোনো সমস্যা নেই।
-৪. সবগুলো অংশ প্রাঞ্জল ও পেশাদার প্রমিত বাংলায় লিখুন।
-
-যাত্রাপথের তথ্য:
-- শুরু: ${evidence.origin}
-- গন্তব্য: ${evidence.destination}
-- আনুমানিক দূরত্ব: ${evidence.totalDistanceKm} কি.মি.
-- করিডোর সার্চ বাফার: ${evidence.corridorRadiusMeters} মিটার
-- প্রাপ্ত রিপোর্টের সংখ্যা: ${evidence.reportCount} টি
-
-প্রাপ্ত রিপোর্টসমূহের তালিকা (Evidence):
-${JSON.stringify(evidence.reports, null, 2)}
-
-নিম্নলিখিত ৯টি বিষয় কভার করে STRICT JSON তৈরি করুন:
-{
-  "routeSummary": "১. যাত্রাপথের সার্বিক সারসংক্ষেপ (১-২ অনুচ্ছেদ)",
-  "vulnerableAreas": ["২. সম্ভাব্য সমস্যাপ্রবণ এলাকাগুলোর তালিকা"],
-  "trafficIssues": "৩. কোথায় যানজটের রিপোর্ট রয়েছে বা নেই তার বিশ্লেষণ",
-  "roadDamageIssues": "৪. কোথায় রাস্তার ক্ষতির রিপোর্ট রয়েছে তার বিবরণ",
-  "waterloggingIssues": "৫. কোথায় জলাবদ্ধতার রিপোর্ট রয়েছে তার বিবরণ",
-  "constructionIssues": "৬. কোথায় নির্মাণকাজের রিপোর্ট রয়েছে তার বিবরণ",
-  "criticalIssues": "৭. কোন সমস্যাগুলো বেশি গুরুতর তার পর্যালোচনা",
-  "latestReportDates": "৮. সমস্যাগুলোর সর্বশেষ রিপোর্টের সময় ও তারিখের পর্যালোচনা",
-  "travelerAdvisories": [
-    "৯. ব্যবহারকারীর জন্য সতর্কতা ও পরামর্শ পয়েন্ট ১",
-    "পয়েন্ট ২",
-    "পয়েন্ট ৩"
-  ],
-  "dataCoverageNote": "ডেটা কভারেজ সংক্রান্ত বাস্তবমুখী মন্তব্য (যেমন: রিপোর্টের অনুপস্থিতি সমস্যার অনুপস্থিতি প্রমাণ করে না)"
-}
+রুট: ${evidence.origin} ➔ ${evidence.destination} (${evidence.totalDistanceKm} কি.মি., বাফার: ${evidence.corridorRadiusMeters} মি.${evidence.travelTime ? `, সময়: ${evidence.travelTime}` : ''})
+মোট প্রাপ্ত রিপোর্ট: ${evidence.reportCount} টি
+রিপোর্ট তালিকা: ${JSON.stringify(compactReports)}
 `;
 
+  const schema = {
+    type: Type.OBJECT,
+    properties: {
+      routeSummary: { type: Type.STRING, description: '১-২ বাক্যে যাত্রাপথের সার্বিক সারসংক্ষেপ' },
+      vulnerableAreas: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'সম্ভাব্য সমস্যাপ্রবণ এলাকা ও সমস্যার ধরন' },
+      trafficIssues: { type: Type.STRING, description: 'যানজট সংক্রান্ত বিশ্লেষণ' },
+      roadDamageIssues: { type: Type.STRING, description: 'রাস্তার ক্ষতি সংক্রান্ত বিবরণ' },
+      waterloggingIssues: { type: Type.STRING, description: 'জলাবদ্ধতা ও ড্রেনেজ সংক্রান্ত বিবরণ' },
+      constructionIssues: { type: Type.STRING, description: 'নির্মাণকাজ সংক্রান্ত বিবরণ' },
+      criticalIssues: { type: Type.STRING, description: 'অতি-জরুরি বা বেশি গুরুতর সমস্যা পর্যালোচনা' },
+      latestReportDates: { type: Type.STRING, description: 'সর্বশেষ রিপোর্টের সময় ও তারিখ পর্যালোচনা' },
+      travelerAdvisories: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'যাত্রীদের জন্য ৩-৪টি বাস্তবসম্মত সতর্কতা ও পরামর্শ' },
+      dataCoverageNote: { type: Type.STRING, description: 'ডেটা কভারেজ সংক্রান্ত স্বচ্ছতা নোট' },
+    },
+    required: [
+      'routeSummary',
+      'vulnerableAreas',
+      'trafficIssues',
+      'roadDamageIssues',
+      'waterloggingIssues',
+      'constructionIssues',
+      'criticalIssues',
+      'latestReportDates',
+      'travelerAdvisories',
+      'dataCoverageNote',
+    ],
+  };
+
   try {
-    if (!process.env.GEMINI_API_KEY) {
-      return generateCorridorFallback(evidence);
-    }
+    const { data: parsed, modelUsed, latencyMs } = await generateJsonWithFailover<Partial<RouteAnalysisResult>>(
+      prompt,
+      schema,
+      8000,
+      8000,
+      true
+    );
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-      },
-    });
-
-    const text = response.text?.trim() || '{}';
-    const parsed = JSON.parse(text);
-    return {
-      routeSummary: parsed.routeSummary || 'যাত্রাপথ বিশ্লেষণ সম্পন্ন হয়েছে।',
-      vulnerableAreas: Array.isArray(parsed.vulnerableAreas) ? parsed.vulnerableAreas : [],
-      trafficIssues: parsed.trafficIssues || 'এই করিডোরে নির্দিষ্ট যানজট রিপোর্ট নেই।',
-      roadDamageIssues: parsed.roadDamageIssues || 'রাস্তার ক্ষতির কোনো রেকর্ড মেলেনি।',
-      waterloggingIssues: parsed.waterloggingIssues || 'জলাবদ্ধতার কোনো সক্রিয় রিপোর্ট নেই।',
-      constructionIssues: parsed.constructionIssues || 'নির্মাণকাজের কোনো চলমান রিপোর্ট নেই।',
-      criticalIssues: parsed.criticalIssues || 'কোনো অতি-জরুরি সমস্যা নেই।',
-      latestReportDates: parsed.latestReportDates || 'সাম্প্রতিক রিপোর্ট পর্যালোচিত।',
-      travelerAdvisories: Array.isArray(parsed.travelerAdvisories) ? parsed.travelerAdvisories : ['সাবধানে চলাচল করুন।'],
-      dataCoverageNote: parsed.dataCoverageNote || 'তথ্যসূত্র: প্রবলেমগ্রাফ কমিউনিটি ডাটাবেজ। রিপোর্টের অনুপস্থিতি সমস্যার অনুপস্থিতি নির্দেশ করে না।',
+    const result: RouteAnalysisResult = {
+      routeSummary: parsed.routeSummary || instantFallback.routeSummary,
+      vulnerableAreas: Array.isArray(parsed.vulnerableAreas) ? parsed.vulnerableAreas : instantFallback.vulnerableAreas,
+      trafficIssues: parsed.trafficIssues || instantFallback.trafficIssues,
+      roadDamageIssues: parsed.roadDamageIssues || instantFallback.roadDamageIssues,
+      waterloggingIssues: parsed.waterloggingIssues || instantFallback.waterloggingIssues,
+      constructionIssues: parsed.constructionIssues || instantFallback.constructionIssues,
+      criticalIssues: parsed.criticalIssues || instantFallback.criticalIssues,
+      latestReportDates: parsed.latestReportDates || instantFallback.latestReportDates,
+      travelerAdvisories:
+        Array.isArray(parsed.travelerAdvisories) && parsed.travelerAdvisories.length > 0
+          ? parsed.travelerAdvisories
+          : instantFallback.travelerAdvisories,
+      dataCoverageNote: parsed.dataCoverageNote || instantFallback.dataCoverageNote,
     };
-  } catch (error) {
-    console.warn('Gemini route intelligence fallback used due to:', error);
-    return generateCorridorFallback(evidence);
+
+    routeAiCache.set(cacheKey, { result, ts: Date.now() });
+    geminiDiag.lastSource = 'gemini';
+    geminiDiag.lastModel = modelUsed;
+    geminiDiag.lastLatencyMs = latencyMs;
+    geminiDiag.lastError = '';
+    geminiDiag.lastUpdatedAt = new Date().toISOString();
+    console.log(`Gemini route analysis (${modelUsed}) completed in ${latencyMs}ms (${evidence.origin} -> ${evidence.destination})`);
+    return result;
+  } catch (error: any) {
+    geminiDiag.lastSource = 'fallback';
+    geminiDiag.lastModel = 'structured-fallback';
+    geminiDiag.lastError = `${error?.status || ''} ${error?.message || String(error)}`.trim();
+    geminiDiag.lastUpdatedAt = new Date().toISOString();
+    console.log('[AI Route] Structured local fallback used:', (error as any)?.message || error);
+    return instantFallback;
   }
 }
 
@@ -235,52 +342,49 @@ ${JSON.stringify(evidence.reports, null, 2)}
  * Admin Executive Insights Generator
  */
 export async function generateAdminInsightsAI(
-  stats: any
+  stats: any,
+  timeoutMs: number = 5000
 ): Promise<AdminInsightResult> {
+  const instantFallback = generateAdminFallback(stats);
+  if (!process.env.GEMINI_API_KEY) {
+    return instantFallback;
+  }
+
   const prompt = `
 আপনি 'প্রবলেমগ্রাফ' প্ল্যাটফর্মের এআই অ্যানালিটিক্স ও পলিসি অ্যাডভাইজার।
-প্ল্যাটফর্মের সামগ্রিক ডেটাবেজ পরিসংখ্যান পর্যালোচনা করে সিটি কর্পোরেশন ও স্থানীয় প্রশাসনের জন্য গভীর অন্তর্দৃষ্টিমূলক অন্তর্দৃষ্টি (Insights) প্রস্তুত করুন।
+নিচের পরিসংখ্যান পর্যালোচনা করে সিটি কর্পোরেশন ও স্থানীয় প্রশাসনের জন্য বাংলায় ইনসাইটস দিন।
 
-ডেটাবেজ পরিসংখ্যান:
-${JSON.stringify(stats, null, 2)}
-
-STRICT JSON ফরম্যাটে বাংলায় আউটপুট দিন:
-{
-  "executiveSummary": "প্রশাসনিক নির্বাহী সারসংক্ষেপ (২-৩ বাক্য)",
-  "topProblemAreas": "কোন এলাকায় সবচেয়ে বেশি সমস্যা হচ্ছে তার কারণসহ বিশ্লেষণ",
-  "dominantCategories": "কোন ধরনের সমস্যা সবচেয়ে বেশি রিপোর্ট হচ্ছে তার বিবরণ",
-  "surgingTrends": "কোন এলাকায় বা ক্যাটাগরিতে সমস্যা দ্রুত বাড়ছে তার ট্রেন্ড বিশ্লেষণ",
-  "longPendingIssues": "দীর্ঘদিন ধরে সমাধান না হওয়া সমস্যাগুলোর ঝুঁকির বিশ্লেষণ",
-  "priorityActionItems": [
-    "অবিলম্বে পদক্ষেপ নেওয়ার মতো অগ্রাধিকার ১",
-    "অগ্রাধিকার ২",
-    "অগ্রাধিকার ৩"
-  ],
-  "strategicRecommendations": [
-    "কমিউনিটি ও সিটি কর্পোরেশন সমন্বয়ের কৌশলগত সুপারিশ ১",
-    "সুপারিশ ২"
-  ]
-}
+পরিসংখ্যান: ${JSON.stringify(stats)}
 `;
 
   try {
-    if (!process.env.GEMINI_API_KEY) {
-      return generateAdminFallback(stats);
-    }
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        executiveSummary: { type: Type.STRING },
+        topProblemAreas: { type: Type.STRING },
+        dominantCategories: { type: Type.STRING },
+        surgingTrends: { type: Type.STRING },
+        longPendingIssues: { type: Type.STRING },
+        priorityActionItems: { type: Type.ARRAY, items: { type: Type.STRING } },
+        strategicRecommendations: { type: Type.ARRAY, items: { type: Type.STRING } },
       },
-    });
+      required: [
+        'executiveSummary',
+        'topProblemAreas',
+        'dominantCategories',
+        'surgingTrends',
+        'longPendingIssues',
+        'priorityActionItems',
+        'strategicRecommendations',
+      ],
+    };
 
-    const text = response.text?.trim() || '{}';
-    return JSON.parse(text);
+    const { data } = await generateJsonWithFailover<AdminInsightResult>(prompt, schema, 8000, timeoutMs);
+    return data;
   } catch (err) {
-    console.warn('Admin insights fallback used:', err);
-    return generateAdminFallback(stats);
+    console.log('[AI Admin] Structured insights fallback used:', (err as any)?.message || err);
+    return instantFallback;
   }
 }
 
@@ -288,59 +392,78 @@ STRICT JSON ফরম্যাটে বাংলায় আউটপুট দ�
  * AI Solution Recommendation for Municipal Authorities
  */
 export async function generateSolutionRecommendationAI(
-  problem: any
+  problem: any,
+  timeoutMs: number = 5000
 ): Promise<SolutionRecommendationResult> {
+  const instantFallback = generateSolutionFallback(problem);
+  if (!process.env.GEMINI_API_KEY) {
+    return instantFallback;
+  }
+
   const prompt = `
-আপনি বাংলাদেশ নগর পরিকল্পনা, জননিরাপত্তা ও মিউনিসিপ্যাল গভর্নেন্সের একজন এআই কনসালট্যান্ট।
-নিম্নোক্ত কমিউনিটি সমস্যার জন্য সংশ্লিষ্ট কর্তৃপক্ষের কাছে পাঠানোর উপযোগী একটি পূর্ণাঙ্গ সুপারিশপত্র তৈরি করুন।
+আপনি বাংলাদেশ নগর পরিকল্পনা ও মিউনিসিপ্যাল গভর্নেন্সের একজন এআই কনসালট্যান্ট।
+নিম্নোক্ত কমিউনিটি সমস্যার জন্য বাংলায় সমাধান সুপারিশপত্র তৈরি করুন:
 
-সমস্যার শিরোনাম: ${problem.title}
-ক্যাটাগরি: ${problem.category}
-উপ-ক্যাটাগরি: ${problem.subcategory || 'প্রযোজ্য নয়'}
-এলাকা ও জেলা: ${problem.area}, ${problem.district}
+শিরোনাম: ${problem.title}
+ক্যাটাগরি: ${problem.category} (${problem.subcategory || 'সাধারণ'})
+এলাকা: ${problem.area}, ${problem.district}
 ঠিকানা: ${problem.address}
-গুরুত্ব: ${problem.severity}
-বর্তমান অবস্থা: ${problem.status}
+গুরুত্ব: ${problem.severity}, অবস্থা: ${problem.status}
 বিবরণ: ${problem.description}
-
-STRICT JSON ফরম্যাটে দিন:
-{
-  "clusterOrTitle": "${problem.title}",
-  "rootCauseBn": "সমস্যার মূল কারণ (প্রযুক্তিগত বা প্রশাসনিক)",
-  "impactAssessmentBn": "নাগরিক জনজীবন ও অর্থনীতির ওপর প্রভাব",
-  "recommendedSolutionBn": "সুনির্দিষ্ট বাস্তবায়নযোগ্য প্রযুক্তিগত বা অবকাঠামোগত সমাধান",
-  "priority": "low" | "medium" | "high" | "critical",
-  "targetAuthorityBn": "সংশ্লিষ্ট কর্তৃত্বশীল সংস্থা (যেমন: ঢাকা উত্তর সিটি কর্পোরেশন, ঢাকা ওয়াসা, ট্রাফিক পুলিশ ইত্যাদি)",
-  "disclaimerBn": "এই সুপারিশটি এআই-প্রস্তাবিত প্রাথমিক পরামর্শ। মাঠপর্যায়ের প্রকৌশলী বা দায়িত্বপ্রাপ্ত কর্মকর্তা কর্তৃক অনুমোদিত হওয়া আবশ্যক।"
-}
 `;
 
   try {
-    if (!process.env.GEMINI_API_KEY) {
-      return generateSolutionFallback(problem);
-    }
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        clusterOrTitle: { type: Type.STRING },
+        rootCauseBn: { type: Type.STRING },
+        impactAssessmentBn: { type: Type.STRING },
+        recommendedSolutionBn: { type: Type.STRING },
+        priority: { type: Type.STRING },
+        targetAuthorityBn: { type: Type.STRING },
+        disclaimerBn: { type: Type.STRING },
       },
-    });
+      required: [
+        'clusterOrTitle',
+        'rootCauseBn',
+        'impactAssessmentBn',
+        'recommendedSolutionBn',
+        'priority',
+        'targetAuthorityBn',
+        'disclaimerBn',
+      ],
+    };
 
-    const text = response.text?.trim() || '{}';
-    return JSON.parse(text);
+    const { data } = await generateJsonWithFailover<SolutionRecommendationResult>(prompt, schema, 8000, timeoutMs);
+    return data;
   } catch (err) {
-    console.warn('Solution fallback used:', err);
-    return generateSolutionFallback(problem);
+    console.log('[AI Solution] Structured recommendation fallback used:', (err as any)?.message || err);
+    return instantFallback;
   }
 }
 
-// Fallback generators when API key is not configured or in offline simulation
+// Helper for readable Bangla date formatting
+function formatBanglaDate(isoDate?: string): string {
+  if (!isoDate) return 'সাম্প্রতিক';
+  try {
+    const d = new Date(isoDate);
+    if (isNaN(d.getTime())) return isoDate;
+    return d.toLocaleDateString('bn-BD', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  } catch {
+    return isoDate;
+  }
+}
+
+// Fallback generators when API key is not configured or fast timeout triggers
 export function fallbackClassification(title: string, desc: string, cat?: string, sev?: string): ProblemClassificationResult {
   const text = `${title} ${desc}`.toLowerCase();
   let suggestedCat = cat || 'রাস্তার ক্ষতি';
-  let suggestedSev: 'low' | 'medium' | 'high' | 'critical' = sev as any || 'medium';
+  let suggestedSev: 'low' | 'medium' | 'high' | 'critical' = (sev as any) || 'medium';
 
   if (text.includes('জ্যাম') || text.includes('যানজট') || text.includes('গাড়ি')) {
     suggestedCat = 'যানজট';
@@ -374,7 +497,7 @@ export function fallbackClassification(title: string, desc: string, cat?: string
 
 function generateCorridorFallback(evidence: RouteAnalysisEvidence): RouteAnalysisResult {
   const hasReports = evidence.reports && evidence.reports.length > 0;
-  
+
   if (!hasReports) {
     return {
       routeSummary: `${evidence.origin} থেকে ${evidence.destination} পর্যন্ত আনুমানিক ${evidence.totalDistanceKm} কি.মি. করিডোরে প্রবলেমগ্রাফ সিস্টেমে এই মুহূর্তে সরাসরি কোনো নিবন্ধিত সমস্যা পাওয়া যায়নি।`,
@@ -393,35 +516,47 @@ function generateCorridorFallback(evidence: RouteAnalysisEvidence): RouteAnalysi
     };
   }
 
-  const trafficReports = evidence.reports.filter(r => r.category === 'যানজট');
+  const trafficReports = evidence.reports.filter(r => r.category === 'যানজট' || r.category === 'গণপরিবহন সমস্যা');
   const roadReports = evidence.reports.filter(r => r.category === 'রাস্তার ক্ষতি');
-  const waterReports = evidence.reports.filter(r => r.category === 'জলাবদ্ধতা');
+  const waterReports = evidence.reports.filter(r => r.category === 'জলাবদ্ধতা' || r.category === 'ড্রেনেজ সমস্যা');
   const constReports = evidence.reports.filter(r => r.category === 'নির্মাণকাজ');
   const criticalReports = evidence.reports.filter(r => r.severity === 'critical' || r.severity === 'high');
 
+  const sortedByDate = [...evidence.reports].sort(
+    (a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime()
+  );
+
   return {
-    routeSummary: `${evidence.origin} থেকে ${evidence.destination} এর মধ্যে মোট ${evidence.reports.length}টি সক্রিয় সমস্যা পাওয়া গেছে। করিডোরের কয়েকটি অংশে যানবাহন ধীরগতি ও সতর্কতা প্রয়োজন।`,
+    routeSummary: `${evidence.origin} থেকে ${evidence.destination} পর্যন্ত ${evidence.totalDistanceKm} কি.মি. করিডোরে মোট ${evidence.reports.length}টি সক্রিয় নাগরিক সমস্যা পাওয়া গেছে।${criticalReports.length > 0 ? ` এর মধ্যে ${criticalReports.length}টি উচ্চ/অতি-জরুরি ঝুঁকিপূর্ণ হওয়ায় যাত্রাপথে বাড়তি সতর্কতা প্রয়োজন।` : ''}`,
     vulnerableAreas: Array.from(new Set(evidence.reports.map(r => `${r.area} (${r.category})`))),
-    trafficIssues: trafficReports.length > 0 
-      ? `${trafficReports.map(r => r.area).join(', ')} এলাকায় যানজটের সক্রিয় রিপোর্ট রয়েছে।`
-      : 'এই রুটের নির্দিষ্ট অংশে সরাসরি যানজটের কোনো রিপোর্ট মেলেনি।',
-    roadDamageIssues: roadReports.length > 0
-      ? `${roadReports.map(r => r.area).join(', ')} এলাকায় সড়ক ক্ষতিগ্রস্ত বা খানাখন্দের তথ্য রয়েছে।`
-      : 'রাস্তা ক্ষতির কোনো রিপোর্ট পাওয়া যায়নি।',
-    waterloggingIssues: waterReports.length > 0
-      ? `${waterReports.map(r => r.area).join(', ')} অঞ্চলে জলাবদ্ধতা পরিলক্ষিত হয়েছে।`
-      : 'করিডোরে জলাবদ্ধতার কোনো রিপোর্ট নেই।',
-    constructionIssues: constReports.length > 0
-      ? `${constReports.map(r => r.area).join(', ')} এলাকায় সড়ক বা ড্রেন নির্মাণকাজ চলছে।`
-      : 'কোনো দীর্ঘস্থায়ী নির্মাণকাজের তথ্য নেই।',
-    criticalIssues: criticalReports.length > 0
-      ? `উচ্চ ঝুঁকিপূর্ণ সমস্যা: ${criticalReports.map(r => `${r.title} [${r.area}]`).join('; ')}`
-      : 'উচ্চ ঝুঁকিপূর্ণ কোনো সংকট পাওয়া যায়নি।',
-    latestReportDates: `সর্বশেষ প্রাপ্ত রিপোর্টের তারিখ: ${evidence.reports[0]?.reportedAt || 'সাম্প্রতিক'}`,
+    trafficIssues:
+      trafficReports.length > 0
+        ? `${Array.from(new Set(trafficReports.map(r => r.area))).join(', ')} এলাকায় যানজটের সক্রিয় রিপোর্ট রয়েছে (${trafficReports[0].title})।`
+        : 'এই রুটের নির্দিষ্ট অংশে সরাসরি যানজটের কোনো রিপোর্ট মেলেনি।',
+    roadDamageIssues:
+      roadReports.length > 0
+        ? `${Array.from(new Set(roadReports.map(r => r.area))).join(', ')} এলাকায় সড়ক ক্ষতিগ্রস্ত বা খানাখন্দের তথ্য রয়েছে (${roadReports[0].title})।`
+        : 'রাস্তা ক্ষতির কোনো রিপোর্ট পাওয়া যায়নি।',
+    waterloggingIssues:
+      waterReports.length > 0
+        ? `${Array.from(new Set(waterReports.map(r => r.area))).join(', ')} অঞ্চলে জলাবদ্ধতা বা ড্রেনেজ সমস্যা পরিলক্ষিত হয়েছে।`
+        : 'করিডোরে জলাবদ্ধতা বা ড্রেনেজের কোনো সক্রিয় রিপোর্ট নেই।',
+    constructionIssues:
+      constReports.length > 0
+        ? `${Array.from(new Set(constReports.map(r => r.area))).join(', ')} এলাকায় সড়ক বা অবকাঠামো নির্মাণকাজ চলছে।`
+        : 'কোনো দীর্ঘস্থায়ী নির্মাণকাজের তথ্য নেই।',
+    criticalIssues:
+      criticalReports.length > 0
+        ? `উচ্চ ঝুঁকিপূর্ণ সমস্যা: ${criticalReports.slice(0, 3).map(r => `${r.title} [${r.area}]`).join('; ')}`
+        : 'উচ্চ ঝুঁকিপূর্ণ কোনো সংকট পাওয়া যায়নি।',
+    latestReportDates: `সর্বশেষ প্রাপ্ত রিপোর্টের তারিখ: ${formatBanglaDate(sortedByDate[0]?.reportedAt)}`,
     travelerAdvisories: [
+      ...(criticalReports.length > 0
+        ? [`${criticalReports[0].area} পয়েন্টে (${criticalReports[0].category}) বিশেষ সতর্কতার সাথে যানবাহন চালান।`]
+        : []),
       'চিহ্নিত খানাখন্দ ও নির্মাণ এলাকার সামনে যানবাহনের গতি সীমিত রাখুন।',
       'সমস্যাবহুল এলাকাগুলোর জন্য সম্ভাব্য বিকল্প সংযোগ সড়ক ব্যবহারের কথা বিবেচনা করুন।',
-      'যাচাইকৃত রিপোর্ট অনুযায়ী অন্তত ১০-১৫ মিনিট অতিরিক্ত সময় হাতে নিয়ে রওনা হোন।'
+      `যাচাইকৃত ${evidence.reports.length}টি রিপোর্ট বিবেচনায় অন্তত ১০-২০ মিনিট অতিরিক্ত সময় হাতে নিয়ে রওনা হোন।`
     ],
     dataCoverageNote: 'তথ্যসূত্র: প্রবলেমগ্রাফ কমিউনিটি ভেরিফায়েড ডেটাবেজ। মাঠপর্যায়ের সর্বশেষ বাস্তব পরিস্থিতির ওপর ভিত্তি করে সাবধানে যাত্রা করুন।'
   };

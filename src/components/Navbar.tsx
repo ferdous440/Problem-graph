@@ -200,9 +200,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
                   </div>
                   <div className="max-h-64 overflow-y-auto space-y-2 py-2">
                     {notifications.length > 0 ? (
-                      notifications.map(n => (
+                      notifications.map((n, idx) => (
                         <div
-                          key={n.id}
+                          key={`${n.id || 'notif'}-${idx}`}
                           onClick={() => markAsRead(n.id)}
                           className={`p-2.5 rounded-xl text-xs transition-colors cursor-pointer ${n.is_read ? 'bg-slate-50 text-slate-600' : 'bg-teal-50/80 text-teal-900 font-medium border border-teal-100'}`}
                         >

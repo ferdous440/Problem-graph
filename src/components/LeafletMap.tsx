@@ -12,11 +12,14 @@ interface LeafletMapProps {
   onLocationPicked?: (coords: { lat: number; lng: number }) => void;
   // Route mode props
   routePolyline?: Array<{ lat: number; lng: number }>;
-  originCoords?: { lat: number; lng: number };
-  destCoords?: { lat: number; lng: number };
+  originCoords?: { lat: number; lng: number } | null;
+  destCoords?: { lat: number; lng: number } | null;
   originName?: string;
   destName?: string;
   corridorBufferMeters?: number;
+  routePickTarget?: 'origin' | 'destination' | null;
+  onRoutePointPicked?: (target: 'origin' | 'destination', coords: { lat: number; lng: number }) => void;
+  userLocation?: { lat: number; lng: number } | null;
   height?: string;
   className?: string;
 }
@@ -34,6 +37,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   originName = 'যাত্রা শুরু',
   destName = 'গন্তব্য',
   corridorBufferMeters = 800,
+  routePickTarget = null,
+  onRoutePointPicked,
+  userLocation = null,
   height = '500px',
   className = ''
 }) => {
@@ -42,6 +48,17 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
   const routeLayerRef = useRef<L.LayerGroup | null>(null);
   const pickerMarkerRef = useRef<L.Marker | null>(null);
+  const routePickTargetRef = useRef<'origin' | 'destination' | null>(routePickTarget);
+  const onRoutePointPickedRef = useRef(onRoutePointPicked);
+  const [geoError, setGeoError] = React.useState<string | null>(null);
+
+  useEffect(() => {
+    routePickTargetRef.current = routePickTarget;
+  }, [routePickTarget]);
+
+  useEffect(() => {
+    onRoutePointPickedRef.current = onRoutePointPicked;
+  }, [onRoutePointPicked]);
 
   // Initialize Map
   useEffect(() => {
@@ -62,13 +79,21 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       markersLayerRef.current = L.layerGroup().addTo(map);
       routeLayerRef.current = L.layerGroup().addTo(map);
 
-      // Picker mode click listener
+      // Picker & Route click listener
       if (mode === 'picker') {
         map.on('click', (e: L.LeafletMouseEvent) => {
           const { lat, lng } = e.latlng;
           updatePickerMarker(lat, lng);
           if (onLocationPicked) {
             onLocationPicked({ lat, lng });
+          }
+        });
+      } else if (mode === 'route') {
+        map.on('click', (e: L.LeafletMouseEvent) => {
+          const target = routePickTargetRef.current;
+          if (target && onRoutePointPickedRef.current) {
+            const { lat, lng } = e.latlng;
+            onRoutePointPickedRef.current(target, { lat, lng });
           }
         });
       }
@@ -231,18 +256,18 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     }
   }, [selectedProblem]);
 
-  // Route Polyline and Corridor visualization
+  // Route Polyline, Corridor, Interactive A/B Pins & Live GPS Blue Dot
   useEffect(() => {
     if (!mapInstanceRef.current || !routeLayerRef.current) return;
     if (mode !== 'route') return;
 
     routeLayerRef.current.clearLayers();
 
+    let routeLine: L.Polyline | null = null;
     if (routePolyline && routePolyline.length > 0) {
       const latLngs: [number, number][] = routePolyline.map(p => [p.lat, p.lng]);
 
-      // Route polyline with navy/teal styling
-      const routeLine = L.polyline(latLngs, {
+      routeLine = L.polyline(latLngs, {
         color: '#0284c7',
         weight: 6,
         opacity: 0.85,
@@ -251,7 +276,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       });
       routeLine.addTo(routeLayerRef.current);
 
-      // Corridor buffer line (semi-transparent corridor outline)
       const bufferLine = L.polyline(latLngs, {
         color: '#38bdf8',
         weight: Math.max(16, corridorBufferMeters / 25),
@@ -260,49 +284,109 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         lineJoin: 'round'
       });
       bufferLine.addTo(routeLayerRef.current);
-
-      // Origin Marker
-      if (originCoords) {
-        const startIcon = L.divIcon({
-          className: 'start-pin',
-          html: `
-            <div style="background-color: #10b981; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3); font-size: 14px;">
-              A
-            </div>
-          `,
-          iconSize: [32, 32],
-          iconAnchor: [16, 16]
-        });
-        L.marker([originCoords.lat, originCoords.lng], { icon: startIcon })
-          .bindPopup(`<b>যাত্রা শুরু:</b> ${originName}`)
-          .addTo(routeLayerRef.current);
-      }
-
-      // Destination Marker
-      if (destCoords) {
-        const endIcon = L.divIcon({
-          className: 'end-pin',
-          html: `
-            <div style="background-color: #ef4444; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3); font-size: 14px;">
-              B
-            </div>
-          `,
-          iconSize: [32, 32],
-          iconAnchor: [16, 16]
-        });
-        L.marker([destCoords.lat, destCoords.lng], { icon: endIcon })
-          .bindPopup(`<b>গন্তব্য:</b> ${destName}`)
-          .addTo(routeLayerRef.current);
-      }
-
-      mapInstanceRef.current.fitBounds(routeLine.getBounds(), { padding: [60, 60] });
     }
-  }, [routePolyline, originCoords, destCoords, corridorBufferMeters, mode]);
+
+    // Blue pulsing GPS user location dot
+    if (userLocation) {
+      const gpsIcon = L.divIcon({
+        className: 'user-gps-dot',
+        html: `
+          <div style="position: relative; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;">
+            <div style="position: absolute; width: 22px; height: 22px; border-radius: 50%; background: rgba(37, 99, 235, 0.25);"></div>
+            <div style="width: 12px; height: 12px; border-radius: 50%; background: #2563eb; border: 2.5px solid white; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.6);"></div>
+          </div>
+        `,
+        iconSize: [22, 22],
+        iconAnchor: [11, 11]
+      });
+      L.marker([userLocation.lat, userLocation.lng], { icon: gpsIcon, zIndexOffset: 500 })
+        .bindPopup('<b>আপনার বর্তমান GPS অবস্থান</b>')
+        .addTo(routeLayerRef.current);
+    }
+
+    // Draggable Origin Marker (A)
+    if (originCoords) {
+      const startIcon = L.divIcon({
+        className: 'start-pin',
+        html: `
+          <div style="background-color: #10b981; color: white; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid white; box-shadow: 0 4px 8px rgba(0,0,0,0.35); font-size: 14px; cursor: grab;">
+            A
+          </div>
+        `,
+        iconSize: [34, 34],
+        iconAnchor: [17, 17]
+      });
+      const startMarker = L.marker([originCoords.lat, originCoords.lng], {
+        icon: startIcon,
+        draggable: !!onRoutePointPickedRef.current,
+        zIndexOffset: 600
+      })
+        .bindPopup(`<b>যাত্রা শুরু (A):</b> ${originName}`)
+        .addTo(routeLayerRef.current);
+
+      startMarker.on('dragend', (e: any) => {
+        const pos = e.target.getLatLng();
+        if (onRoutePointPickedRef.current) {
+          onRoutePointPickedRef.current('origin', { lat: pos.lat, lng: pos.lng });
+        }
+      });
+    }
+
+    // Draggable Destination Marker (B)
+    if (destCoords) {
+      const endIcon = L.divIcon({
+        className: 'end-pin',
+        html: `
+          <div style="background-color: #ef4444; color: white; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid white; box-shadow: 0 4px 8px rgba(0,0,0,0.35); font-size: 14px; cursor: grab;">
+            B
+          </div>
+        `,
+        iconSize: [34, 34],
+        iconAnchor: [17, 17]
+      });
+      const endMarker = L.marker([destCoords.lat, destCoords.lng], {
+        icon: endIcon,
+        draggable: !!onRoutePointPickedRef.current,
+        zIndexOffset: 600
+      })
+        .bindPopup(`<b>গন্তব্য (B):</b> ${destName}`)
+        .addTo(routeLayerRef.current);
+
+      endMarker.on('dragend', (e: any) => {
+        const pos = e.target.getLatLng();
+        if (onRoutePointPickedRef.current) {
+          onRoutePointPickedRef.current('destination', { lat: pos.lat, lng: pos.lng });
+        }
+      });
+    }
+
+    setTimeout(() => {
+      const map = mapInstanceRef.current;
+      if (!map) return;
+      map.invalidateSize();
+      if (routeLine) {
+        map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
+      } else if (originCoords && destCoords) {
+        const b = L.latLngBounds([
+          [originCoords.lat, originCoords.lng],
+          [destCoords.lat, destCoords.lng]
+        ]);
+        map.fitBounds(b, { padding: [60, 60], maxZoom: 15 });
+      } else if (originCoords) {
+        map.setView([originCoords.lat, originCoords.lng], 15, { animate: true });
+      } else if (destCoords) {
+        map.setView([destCoords.lat, destCoords.lng], 15, { animate: true });
+      } else if (userLocation) {
+        map.setView([userLocation.lat, userLocation.lng], 15, { animate: true });
+      }
+    }, 60);
+  }, [routePolyline, originCoords, destCoords, originName, destName, corridorBufferMeters, userLocation, mode]);
 
   // Geolocation trigger function for picker mode
   const handleCurrentLocation = () => {
+    setGeoError(null);
     if (!navigator.geolocation) {
-      alert('আপনার ব্রাউজারে লোকেশন সার্ভিস সমর্থিত নয়।');
+      setGeoError('আপনার ব্রাউজারে লোকেশন সার্ভিস সমর্থিত নয়।');
       return;
     }
 
@@ -319,31 +403,53 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       },
       (err) => {
         console.warn('Geolocation error:', err);
-        alert('বর্তমান অবস্থান পেতে ব্যর্থ হয়েছে। অনুগ্রহ করে ম্যাপে ক্লিক করে অবস্থান নির্বাচন করুন।');
+        setGeoError('বর্তমান অবস্থান পাওয়া যায়নি। অনুগ্রহ করে ম্যাপে ক্লিক করে অবস্থান নির্বাচন করুন।');
       },
-      { enableHighAccuracy: true }
+      { enableHighAccuracy: true, timeout: 10000 }
     );
   };
 
   return (
     <div className={`relative w-full rounded-2xl overflow-hidden border border-slate-200 shadow-sm ${className}`}>
-      <div ref={mapContainerRef} style={{ width: '100%', height }} />
+      <div
+        ref={mapContainerRef}
+        style={{ width: '100%', height, cursor: routePickTarget ? 'crosshair' : undefined }}
+      />
 
       {/* Geolocation Button in Picker Mode */}
       {mode === 'picker' && (
         <button
           type="button"
           onClick={handleCurrentLocation}
-          className="absolute top-4 right-4 z-[1000] bg-white hover:bg-slate-50 text-slate-800 text-xs font-semibold px-3 py-2 rounded-xl shadow-md border border-slate-200 flex items-center gap-1.5 transition-all"
+          className="absolute top-4 right-4 z-[1000] bg-white hover:bg-slate-50 text-slate-800 text-xs font-semibold px-3 py-2 rounded-xl shadow-md border border-slate-200 flex items-center gap-1.5 transition-all cursor-pointer"
         >
           <span>🎯</span> বর্তমান জিপিএস অবস্থান নিন
         </button>
+      )}
+
+      {/* Geo Error Pill */}
+      {geoError && (
+        <div className="absolute top-4 left-4 z-[1000] bg-rose-600 text-white text-xs px-3 py-1.5 rounded-lg shadow">
+          {geoError}
+        </div>
       )}
 
       {/* Mode hint badge */}
       {mode === 'picker' && (
         <div className="absolute bottom-3 left-3 z-[1000] bg-slate-900/80 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-lg shadow">
           ম্যাপের যেকোনো স্থানে ক্লিক করে বা মার্কার টেনে অবস্থান সেট করুন
+        </div>
+      )}
+
+      {/* Route Interactive Pick Hint */}
+      {mode === 'route' && routePickTarget && (
+        <div className="absolute bottom-3 left-3 z-[1000] bg-slate-900/85 backdrop-blur-sm text-white text-xs px-3.5 py-2 rounded-xl shadow-lg border border-white/15 flex items-center gap-2">
+          <span className={`w-2.5 h-2.5 rounded-full ${routePickTarget === 'origin' ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+          <span>
+            {routePickTarget === 'origin'
+              ? 'ম্যাপের যেকোনো স্থানে ক্লিক করে যাত্রা শুরু (A) পিন বসান অথবা পিন টেনে সরান'
+              : 'ম্যাপের যেকোনো স্থানে ক্লিক করে গন্তব্য (B) পিন বসান অথবা পিন টেনে সরান'}
+          </span>
         </div>
       )}
     </div>

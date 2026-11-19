@@ -2,62 +2,125 @@ import React, { useState } from 'react';
 import { api } from '../services/api';
 import { RouteAnalysisData, ProblemReport } from '../types';
 import { LeafletMap } from '../components/LeafletMap';
-import { StatusBadge } from '../components/StatusBadge';
 import { SeverityBadge } from '../components/SeverityBadge';
 import { ProblemDetailModal } from '../components/ProblemDetailModal';
 import {
   Sparkles,
   MapPin,
   Navigation,
-  Sliders,
   AlertTriangle,
   CheckCircle2,
   Calendar,
-  Clock,
   Car,
   Hammer,
   CloudRain,
   HardHat,
   ShieldAlert,
   Info,
-  ChevronRight,
-  ExternalLink,
-  Share2,
-  Printer,
-  Compass
+  Compass,
+  ArrowLeftRight,
+  LocateFixed,
+  MapPinned
 } from 'lucide-react';
+
+const BD_LOCATION_SUGGESTIONS = [
+  'মিরপুর ১০',
+  'মিরপুর ১১',
+  'মিরপুর ১২',
+  'মিরপুর ১',
+  'ধানমন্ডি ২৭',
+  'ধানমন্ডি ৩২',
+  'ফার্মগেট',
+  'কারওয়ান বাজার',
+  'শাহবাগ',
+  'মতিঝিল',
+  'গুলিস্তান',
+  'পল্টন',
+  'মহাখালী',
+  'বনানী',
+  'গুলশান ১',
+  'গুলশান ২',
+  'উত্তরা',
+  'বিমানবন্দর',
+  'রামপুরা',
+  'বাড্ডা',
+  'বসুন্ধরা',
+  'মোহাম্মদপুর',
+  'শ্যামলী',
+  'গাবতলী',
+  'যাত্রাবাড়ী',
+  'সদরঘাট',
+  'চকবাজার',
+  'সাভার',
+  'টঙ্গী',
+  'গাজীপুর',
+  'নারায়ণগঞ্জ',
+  'আগ্রাবাদ, চট্টগ্রাম',
+  'জিইসি মোড়, চট্টগ্রাম',
+  'চট্টগ্রাম',
+  'সিলেট',
+  'রাজশাহী',
+  'খুলনা',
+  'বরিশাল',
+  'রংপুর',
+  'কুমিল্লা'
+];
 
 export const RouteIntelligencePage: React.FC = () => {
   const [origin, setOrigin] = useState<string>('মিরপুর ১০');
   const [destination, setDestination] = useState<string>('মতিঝিল');
-  const [travelTime, setTravelTime] = useState<string>('');
+  const [originCoords, setOriginCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [destCoords, setDestCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [routePickTarget, setRoutePickTarget] = useState<'origin' | 'destination' | null>(null);
+  const [isLocatingGPS, setIsLocatingGPS] = useState<boolean>(false);
+  const [travelTime, setTravelTime] = useState<string>('এখনই');
   const [corridorBuffer, setCorridorBuffer] = useState<number>(800);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [analysisData, setAnalysisData] = useState<RouteAnalysisData | null>(null);
+  const [analysisDurationMs, setAnalysisDurationMs] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedProblem, setSelectedProblem] = useState<ProblemReport | null>(null);
 
   // Quick preset corridor routes in Dhaka & Chittagong
   const presetRoutes = [
     { from: 'মিরপুর ১০', to: 'মতিঝিল', label: 'মিরপুর ১০ ➔ মতিঝিল' },
-    { from: 'ধানমন্ডি ২৭', to: 'উত্তরা', label: 'ধানমন্ডি ➔ উত্তরা' },
+    { from: 'ধানমন্ডি ২৭', to: 'উত্তরা', label: 'ধানমন্ডি ২৭ ➔ উত্তরা' },
     { from: 'ফার্মগেট', to: 'বিমানবন্দর', label: 'ফার্মগেট ➔ বিমানবন্দর' },
-    { from: 'চট্টগ্রাম আগ্রাবাদ', to: 'জিইসি মোড়', label: 'আগ্রাবাদ ➔ জিইসি (চট্টগ্রাম)' }
+    { from: 'আগ্রাবাদ, চট্টগ্রাম', to: 'জিইসি মোড়, চট্টগ্রাম', label: 'আগ্রাবাদ ➔ জিইসি (চট্টগ্রাম)' }
   ];
 
-  const handleAnalyze = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!origin.trim() || !destination.trim()) {
+  const runAnalysis = async (
+    fromText: string,
+    toText: string,
+    bufferVal: number = corridorBuffer,
+    timeVal: string = travelTime,
+    fromCoords: { lat: number; lng: number } | null = originCoords,
+    toCoords: { lat: number; lng: number } | null = destCoords
+  ) => {
+    if ((!fromText.trim() && !fromCoords) || (!toText.trim() && !toCoords)) {
       setErrorMessage('অনুগ্রহ করে যাত্রা শুরুর স্থান ও গন্তব্য উভয়ই প্রদান করুন।');
       return;
     }
 
     setIsLoading(true);
     setErrorMessage(null);
+    setRoutePickTarget(null);
+    const startMs = performance.now();
+
+    const originPayload = fromCoords
+      ? { lat: fromCoords.lat, lng: fromCoords.lng, label: fromText.trim() || undefined }
+      : fromText.trim();
+    const destPayload = toCoords
+      ? { lat: toCoords.lat, lng: toCoords.lng, label: toText.trim() || undefined }
+      : toText.trim();
 
     try {
-      const data = await api.analyzeRoute(origin.trim(), destination.trim(), corridorBuffer);
+      const data = await api.analyzeRoute(originPayload, destPayload, bufferVal, timeVal);
       setAnalysisData(data);
+      setOriginCoords(data.route.originCoords);
+      setDestCoords(data.route.destinationCoords);
+      setAnalysisDurationMs(Math.round(performance.now() - startMs));
     } catch (err: any) {
       setErrorMessage(err.message || 'যাত্রাপথ বিশ্লেষণ প্রক্রিয়াকরণে ত্রুটি হয়েছে।');
     } finally {
@@ -65,14 +128,119 @@ export const RouteIntelligencePage: React.FC = () => {
     }
   };
 
+  const handleAnalyze = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    await runAnalysis(origin, destination, corridorBuffer, travelTime, originCoords, destCoords);
+  };
+
   const setPreset = (from: string, to: string) => {
     setOrigin(from);
     setDestination(to);
+    setOriginCoords(null);
+    setDestCoords(null);
+    runAnalysis(from, to, corridorBuffer, travelTime, null, null);
+  };
+
+  const handleSwapLocations = () => {
+    const prevOrigin = origin;
+    const prevDest = destination;
+    const prevOriginCoords = originCoords;
+    const prevDestCoords = destCoords;
+    setOrigin(prevDest);
+    setDestination(prevOrigin);
+    setOriginCoords(prevDestCoords);
+    setDestCoords(prevOriginCoords);
+  };
+
+  // Browser GPS current location picker (Google Maps style)
+  const handleUseCurrentLocation = (target: 'origin' | 'destination' = 'origin') => {
+    setErrorMessage(null);
+    if (!navigator.geolocation) {
+      setErrorMessage('আপনার ব্রাউজারে GPS লোকেশন সার্ভিস সমর্থিত নয়। অনুগ্রহ করে ম্যাপ থেকে অবস্থান বাছাই করুন।');
+      return;
+    }
+
+    setIsLocatingGPS(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserLocation(coords);
+        if (target === 'origin') {
+          setOriginCoords(coords);
+          setOrigin(`আমার বর্তমান অবস্থান (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})`);
+        } else {
+          setDestCoords(coords);
+          setDestination(`আমার বর্তমান অবস্থান (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})`);
+        }
+
+        try {
+          const rev = await api.reverseGeocode(coords.lat, coords.lng);
+          const label = `আমার অবস্থান (${rev.displayName})`;
+          if (target === 'origin') {
+            setOrigin(label);
+          } else {
+            setDestination(label);
+          }
+        } catch {
+          // Keep coordinate label if reverse geocode fails
+        } finally {
+          setIsLocatingGPS(false);
+        }
+      },
+      () => {
+        setIsLocatingGPS(false);
+        setErrorMessage('বর্তমান GPS অবস্থান পাওয়া যায়নি। ব্রাউজারের লোকেশন পারমিশন দিন অথবা নিচের ম্যাপে ক্লিক করে পিন বসান।');
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  // Interactive map pin drop / drag handler (Google Maps style)
+  const handleMapPointPicked = async (target: 'origin' | 'destination', coords: { lat: number; lng: number }) => {
+    setErrorMessage(null);
+    const tempLabel = `নির্বাচিত পয়েন্ট (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})`;
+
+    if (target === 'origin') {
+      setOriginCoords(coords);
+      setOrigin(tempLabel);
+      // After picking origin on map, make it effortless to pick destination next if not yet picked
+      if (!destCoords && routePickTarget === 'origin') {
+        setRoutePickTarget('destination');
+      }
+    } else {
+      setDestCoords(coords);
+      setDestination(tempLabel);
+    }
+
+    // Clear stale polyline until re-analyzed so user sees new pin positions cleanly
+    if (analysisData) {
+      setAnalysisData(null);
+    }
+
+    try {
+      const rev = await api.reverseGeocode(coords.lat, coords.lng);
+      if (rev.displayName) {
+        if (target === 'origin') {
+          setOrigin(rev.displayName);
+        } else {
+          setDestination(rev.displayName);
+        }
+      }
+    } catch {
+      // Keep temp coordinate label gracefully
+    }
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
+      {/* Datalist for fast Bangladeshi location autocomplete */}
+      <datalist id="bd-locations-list">
+        {BD_LOCATION_SUGGESTIONS.map((loc) => (
+          <option key={loc} value={loc} />
+        ))}
+      </datalist>
+
       {/* Page Header */}
       <div className="bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white border border-teal-500/30 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -96,15 +264,16 @@ export const RouteIntelligencePage: React.FC = () => {
         {/* Preset Quick Selectors */}
         <div>
           <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
-            জনপ্রিয় যাত্রাপথ থেকে বেছে নিন:
+            জনপ্রিয় যাত্রাপথে তাৎক্ষণিক এআই বিশ্লেষণ দেখুন:
           </span>
           <div className="flex flex-wrap gap-2">
             {presetRoutes.map((p, idx) => (
               <button
                 key={idx}
                 type="button"
+                disabled={isLoading}
                 onClick={() => setPreset(p.from, p.to)}
-                className={`text-xs px-3.5 py-1.5 rounded-xl border transition-all ${
+                className={`text-xs px-3.5 py-1.5 rounded-xl border transition-all cursor-pointer disabled:opacity-50 ${
                   origin === p.from && destination === p.to
                     ? 'bg-teal-50 text-teal-800 border-teal-400 font-bold shadow-xs'
                     : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
@@ -117,45 +286,124 @@ export const RouteIntelligencePage: React.FC = () => {
         </div>
 
         {/* Input Form */}
-        <form onSubmit={handleAnalyze} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+        <form onSubmit={handleAnalyze} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
           
-          <div className="md:col-span-4">
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              যাত্রা শুরুর স্থান (Starting Point) *
+          <div className="md:col-span-3 space-y-1.5">
+            <label className="block text-xs font-bold text-slate-700">
+              যাত্রা শুরুর স্থান *
             </label>
             <div className="relative">
-              <MapPin className="w-4 h-4 text-emerald-600 absolute left-3.5 top-3.5" />
+              <MapPin className="w-4 h-4 text-emerald-600 absolute left-3 top-3" />
               <input
                 type="text"
+                list="bd-locations-list"
                 value={origin}
-                onChange={(e) => setOrigin(e.target.value)}
-                placeholder="যেমন: মিরপুর ১০, উত্তরা, ধানমন্ডি"
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                onChange={(e) => {
+                  setOrigin(e.target.value);
+                  if (originCoords) setOriginCoords(null);
+                }}
+                placeholder="যেমন: মিরপুর ১০, উত্তরা"
+                className="w-full pl-9 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 required
               />
+              <button
+                type="button"
+                onClick={() => handleUseCurrentLocation('origin')}
+                disabled={isLocatingGPS}
+                title="আমার বর্তমান GPS অবস্থান ব্যবহার করুন"
+                className="absolute right-2 top-2 p-1 rounded-lg text-sky-600 hover:bg-sky-50 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {isLocatingGPS ? (
+                  <div className="w-4 h-4 border-2 border-sky-600 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <LocateFixed className="w-4 h-4" />
+                )}
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => handleUseCurrentLocation('origin')}
+                disabled={isLocatingGPS}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <LocateFixed className="w-3 h-3" />
+                <span>{isLocatingGPS ? 'লোকেশন খুঁজছে...' : 'আমার বর্তমান লোকেশন'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRoutePickTarget(routePickTarget === 'origin' ? null : 'origin')}
+                className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
+                  routePickTarget === 'origin'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                    : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200'
+                }`}
+              >
+                <MapPinned className="w-3 h-3" />
+                <span>{routePickTarget === 'origin' ? 'ম্যাপে ক্লিক করুন (A)' : 'ম্যাপে বাছাই (A)'}</span>
+              </button>
+              {originCoords && (
+                <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                  ✓ {originCoords.lat.toFixed(3)}, {originCoords.lng.toFixed(3)}
+                </span>
+              )}
             </div>
           </div>
 
-          <div className="md:col-span-4">
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              গন্তব্য (Destination) *
+          <div className="md:col-span-1 flex justify-center md:pt-7">
+            <button
+              type="button"
+              onClick={handleSwapLocations}
+              title="স্থান অদল-বদল করুন"
+              className="p-2.5 rounded-xl bg-slate-100 hover:bg-teal-50 text-slate-600 hover:text-teal-700 border border-slate-200 transition-colors cursor-pointer"
+            >
+              <ArrowLeftRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="md:col-span-3 space-y-1.5">
+            <label className="block text-xs font-bold text-slate-700">
+              গন্তব্য *
             </label>
             <div className="relative">
-              <Navigation className="w-4 h-4 text-rose-600 absolute left-3.5 top-3.5" />
+              <Navigation className="w-4 h-4 text-rose-600 absolute left-3 top-3" />
               <input
                 type="text"
+                list="bd-locations-list"
                 value={destination}
-                onChange={(e) => setDestination(e.target.value)}
-                placeholder="যেমন: মতিঝিল, শাহবাগ, বিমানবন্দর"
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                onChange={(e) => {
+                  setDestination(e.target.value);
+                  if (destCoords) setDestCoords(null);
+                }}
+                placeholder="যেমন: মতিঝিল, শাহবাগ"
+                className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 required
               />
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setRoutePickTarget(routePickTarget === 'destination' ? null : 'destination')}
+                className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
+                  routePickTarget === 'destination'
+                    ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                    : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200'
+                }`}
+              >
+                <MapPinned className="w-3 h-3" />
+                <span>{routePickTarget === 'destination' ? 'ম্যাপে ক্লিক করুন (B)' : 'ম্যাপে বাছাই (B)'}</span>
+              </button>
+              {destCoords && (
+                <span className="text-[10px] font-mono text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
+                  ✓ {destCoords.lat.toFixed(3)}, {destCoords.lng.toFixed(3)}
+                </span>
+              )}
             </div>
           </div>
 
           <div className="md:col-span-2">
             <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              করিডোর ব্যাসার্ধ (বাফার)
+              করিডোর বাফার
             </label>
             <select
               value={corridorBuffer}
@@ -169,11 +417,27 @@ export const RouteIntelligencePage: React.FC = () => {
             </select>
           </div>
 
-          <div className="md:col-span-2">
+          <div className="md:col-span-1">
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+              সময়
+            </label>
+            <select
+              value={travelTime}
+              onChange={(e) => setTravelTime(e.target.value)}
+              className="w-full py-2.5 px-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              <option value="এখনই">এখনই</option>
+              <option value="সকাল পিক আওয়ার">সকাল</option>
+              <option value="বিকাল/সন্ধ্যা পিক আওয়ার">সন্ধ্যা</option>
+              <option value="রাত">রাত</option>
+            </select>
+          </div>
+
+          <div className="md:col-span-2 md:pt-5">
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-teal-600 to-sky-600 hover:from-teal-700 hover:to-sky-700 text-white font-bold py-2.5 px-4 rounded-xl text-sm shadow-md flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+              className="w-full bg-gradient-to-r from-teal-600 to-sky-600 hover:from-teal-700 hover:to-sky-700 text-white font-bold py-2.5 px-4 rounded-xl text-sm shadow-md flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
             >
               {isLoading ? (
                 <>
@@ -197,6 +461,75 @@ export const RouteIntelligencePage: React.FC = () => {
             <span>{errorMessage}</span>
           </div>
         )}
+      </div>
+
+      {/* Interactive Google Maps-style Route Picker & Corridor Map (Always Visible) */}
+      <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-3">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div>
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Compass className="w-5 h-5 text-teal-600" />
+              <span>ইন্টারেক্টিভ ম্যাপ থেকে লোকেশন নির্বাচন ও রুট করিডোর</span>
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              গুগল ম্যাপের মতো সরাসরি আপনার GPS লোকেশন নিন অথবা ম্যাপে ক্লিক করে যাত্রা শুরু (A) ও গন্তব্য (B) পিন বসান/টেনে সরান।
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleUseCurrentLocation('origin')}
+              disabled={isLocatingGPS}
+              className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <LocateFixed className="w-3.5 h-3.5 text-sky-600" />
+              <span>{isLocatingGPS ? 'GPS নেওয়া হচ্ছে...' : 'আমার বর্তমান অবস্থান'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setRoutePickTarget(routePickTarget === 'origin' ? null : 'origin')}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-xl border flex items-center gap-1.5 transition-colors cursor-pointer ${
+                routePickTarget === 'origin'
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                  : 'bg-slate-50 hover:bg-emerald-50 text-slate-700 border-slate-200'
+              }`}
+            >
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 border border-white" />
+              <span>শুরু পিন (A)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setRoutePickTarget(routePickTarget === 'destination' ? null : 'destination')}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-xl border flex items-center gap-1.5 transition-colors cursor-pointer ${
+                routePickTarget === 'destination'
+                  ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                  : 'bg-slate-50 hover:bg-rose-50 text-slate-700 border-slate-200'
+              }`}
+            >
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-400 border border-white" />
+              <span>গন্তব্য পিন (B)</span>
+            </button>
+          </div>
+        </div>
+
+        <LeafletMap
+          mode="route"
+          height="460px"
+          problems={analysisData?.corridorReports || []}
+          routePolyline={analysisData?.route.polyline || []}
+          originCoords={originCoords || analysisData?.route.originCoords || null}
+          destCoords={destCoords || analysisData?.route.destinationCoords || null}
+          originName={origin || analysisData?.route.origin || 'যাত্রা শুরু'}
+          destName={destination || analysisData?.route.destination || 'গন্তব্য'}
+          corridorBufferMeters={analysisData?.corridorBufferMeters || corridorBuffer}
+          routePickTarget={routePickTarget}
+          onRoutePointPicked={handleMapPointPicked}
+          userLocation={userLocation}
+          onSelectProblem={(p) => setSelectedProblem(p)}
+        />
       </div>
 
       {/* Analysis Results View */}
@@ -238,36 +571,10 @@ export const RouteIntelligencePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Map + Problem Markers on Corridor */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Compass className="w-5 h-5 text-teal-600" />
-                <span>ইন্টারেক্টিভ রুট করিডোর ও সমস্যা চিহ্নিতকরণ ম্যাপ</span>
-              </h3>
-              <span className="text-xs text-slate-500">
-                সবুজ মার্কার (শুরু) ➔ লাল মার্কার (গন্তব্য)
-              </span>
-            </div>
-
-            <LeafletMap
-              mode="route"
-              height="480px"
-              problems={analysisData.corridorReports}
-              routePolyline={analysisData.route.polyline}
-              originCoords={analysisData.route.originCoords}
-              destCoords={analysisData.route.destinationCoords}
-              originName={analysisData.route.origin}
-              destName={analysisData.route.destination}
-              corridorBufferMeters={analysisData.corridorBufferMeters}
-              onSelectProblem={(p) => setSelectedProblem(p)}
-            />
-          </div>
-
           {/* Complete 9-Point Gemini AI Intelligence Report */}
           <div className="bg-gradient-to-br from-white via-slate-50/50 to-teal-50/30 rounded-3xl p-6 sm:p-8 border border-teal-200 shadow-sm space-y-8">
             
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow">
                   <Sparkles className="w-5 h-5 text-amber-300" />
@@ -277,10 +584,15 @@ export const RouteIntelligencePage: React.FC = () => {
                     এআই যাত্রাপথ মূল্যায়ন ও ঝুঁকি বিশ্লেষণ প্রতিবেদন
                   </h3>
                   <p className="text-xs text-slate-500">
-                    মডেল: Gemini 3.8 Flash • প্রবলেমগ্রাফ কমিউনিটি ভেরিফাইড এভিডেন্স
+                    মডেল: Gemini 4 Hydrogen • প্রবলেমগ্রাফ কমিউনিটি ভেরিফাইড এভিডেন্স
                   </p>
                 </div>
               </div>
+              {analysisDurationMs !== null && (
+                <span className="text-[11px] font-semibold text-teal-700 bg-teal-50 border border-teal-200 px-3 py-1 rounded-xl self-start sm:self-auto">
+                  ⚡ {(analysisDurationMs / 1000).toFixed(2)} সেকেন্ডে বিশ্লেষিত
+                </span>
+              )}
             </div>
 
             {/* 1. Route Summary */}

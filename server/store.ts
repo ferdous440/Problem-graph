@@ -596,7 +596,16 @@ class MemoryStore {
         this.profiles = data.profiles || SEED_PROFILES;
         this.reports = data.reports || SEED_REPORTS;
         this.auditLogs = data.auditLogs || [];
-        this.notifications = data.notifications || [];
+        const rawNotifs: UserNotification[] = data.notifications || [];
+        const seenNotifIds = new Set<string>();
+        this.notifications = rawNotifs.map((n, idx) => {
+          let id = n.id;
+          if (!id || seenNotifIds.has(id)) {
+            id = `${id || 'notif'}-${idx}-${Math.random().toString(36).substring(2, 7)}`;
+          }
+          seenNotifIds.add(id);
+          return { ...n, id };
+        });
         this.aiRecommendations = data.aiRecommendations || [];
         return;
       }
@@ -899,7 +908,7 @@ class MemoryStore {
 
     // Create user notification
     this.notifications.unshift({
-      id: `notif-${Date.now()}`,
+      id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
       user_id: user.id,
       problem_id: newReport.id,
       title_bn: 'সমস্যা সফলভাবে জমা হয়েছে',
@@ -949,7 +958,7 @@ class MemoryStore {
     };
 
     this.notifications.unshift({
-      id: `notif-${Date.now()}`,
+      id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
       user_id: report.user_id,
       problem_id: report.id,
       title_bn: `রিপোর্টের অবস্থা: ${statusLabels[newStatus] || newStatus}`,
@@ -960,7 +969,7 @@ class MemoryStore {
 
     // Add Audit Log
     this.addAuditLog({
-      id: `log-${Date.now()}`,
+      id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
       admin_id: admin.id,
       admin_name: admin.full_name,
       action_type: 'UPDATE_REPORT_STATUS',

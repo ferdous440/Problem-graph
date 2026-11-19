@@ -647,9 +647,9 @@ export const UserDashboardPage: React.FC<UserDashboardPageProps> = ({ onNavigate
 
               {notifications.length > 0 ? (
                 <div className="space-y-2.5">
-                  {notifications.map((n) => (
+                  {notifications.map((n, idx) => (
                     <div
-                      key={n.id}
+                      key={`${n.id || 'notif'}-${idx}`}
                       onClick={() => markAsRead(n.id)}
                       className={`p-4 rounded-2xl border transition-all cursor-pointer ${
                         n.is_read
